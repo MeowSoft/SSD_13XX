@@ -83,6 +83,7 @@ Icon Render              1754
 #include "Print.h"
 #include <SPI.h>
 
+#include "Spi/SpiMethods.h"
 #include "_includes/_cpuCommons.h"
 #include "_includes/_common_16bit_colors.h"
 #include "_settings/SSD_13XX_settings.h"

@@ -10,31 +10,30 @@
 using namespace SPI_NAMESPACE;
 #endif
 
-static Spi_Teensy_3x* Spi_;
+static Spi_Teensy_3x Spi_ = Spi_Teensy_3x();
   
-void InitSpi(SpiSetup initData) { 
-    Spi_ = new Spi_Teensy_3x();
-    Spi_->InitSpi(initData); 
+inline void InitSpi(SpiSetup initData) {
+    Spi_.InitSpi(initData); 
 }
 
 #endif
 
-void startTransaction(void) { Spi_->startTransaction(); }
+inline void startTransaction(void) { Spi_.startTransaction(); }
 
-void endTransaction(void) { Spi_->endTransaction(); }
+inline void endTransaction(void) { Spi_.endTransaction(); }
           
-void writecommand_cont(const uint8_t c) { Spi_->writecommand_cont(c); }
+inline void writecommand_cont(const uint8_t c) { Spi_.writecommand_cont(c); }
 
-void writecommand16_cont(uint16_t c) { Spi_->writecommand16_cont(c); }
+inline void writecommand16_cont(uint16_t c) { Spi_.writecommand16_cont(c); }
 
-void writedata8_cont(uint8_t c) { Spi_->writedata8_cont(c); }
+inline void writedata8_cont(uint8_t c) { Spi_.writedata8_cont(c); }
 
-void writedata16_cont(uint16_t d) { Spi_->writedata16_cont(d); }
+inline void writedata16_cont(uint16_t d) { Spi_.writedata16_cont(d); }
 
-void writecommand_last(const uint8_t c) { Spi_->writecommand_last(c); }
+inline void writecommand_last(const uint8_t c) { Spi_.writecommand_last(c); }
 
-void writedata8_last(uint8_t c) { Spi_->writedata8_last(c); }
+inline void writedata8_last(uint8_t c) { Spi_.writedata8_last(c); }
 
-void writedata16_last(uint16_t d) { Spi_->writedata16_last(d); }
+inline void writedata16_last(uint16_t d) { Spi_.writedata16_last(d); }
 
 #endif
