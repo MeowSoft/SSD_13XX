@@ -17,7 +17,7 @@
 ===========================================================================================*/
 
 #include "SSD_13XX.h"
-
+#include "Spi/SpiMethods.h"
 
 /*********************************************************
 ********************** constructors **********************
@@ -27,11 +27,9 @@
 #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin,const uint8_t mosi,const uint8_t sclk)
 	{
-		_cs   = cspin;
-		_dc   = dcpin;
 		_rst  = rstpin;
-		_mosi = mosi;
-		_sclk = sclk;
+        bool foo;
+        InitSpi(SpiSetup(mosi, sclk, cspin, dcpin, CMD_NOP, true, &foo));
 	}
 #elif defined(__MKL26Z64__) //Teensy LC
 	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin,const uint8_t mosi,const uint8_t sclk)
@@ -226,23 +224,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 	#endif
 		enableDataStream();
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-	if ((_mosi == 11 || _mosi == 7) && (_sclk == 13 || _sclk == 14)) {
-        SPI.setMOSI(_mosi);
-        SPI.setSCK(_sclk);
-	} else {
-		bitSet(_initError,0);
-		return;
-	}
-	if (!avoidSPIinit) SPI.begin();
-	if (SPI.pinIsChipSelect(_cs, _dc)) {
-		pcs_data = SPI.setCS(_cs);
-		pcs_command = pcs_data | SPI.setCS(_dc);
-	} else {
-		pcs_data = 0;
-		pcs_command = 0;
-		bitSet(_initError,1);
-		return;
-	}
+
 #elif defined(ESP8266)//(arm) XTENSA ESP8266
 	pinMode(_dc, OUTPUT);
 	pinMode(_cs, OUTPUT);
