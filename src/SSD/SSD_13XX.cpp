@@ -299,8 +299,8 @@ void SSD_13XX::begin(bool avoidSPIinit)
 		setRegister_cont(CMD_SETMULTIPLEX,SSD_SETMULTIPLEX);
 		setRegister_cont(CMD_STARTLINE,SSD_STARTLINE);
 		setRegister_cont(CMD_DISPLAYOFFSET,SSD_DISPLAYOFFSET);
-		setRegister_cont(CMD_PHASEPERIOD,SSD_PHASEPERIOD);
-		setRegister_cont(CMD_SETMASTER,SSD_SETMASTER);
+		// setRegister_cont(CMD_PHASEPERIOD,SSD_PHASEPERIOD);
+		setRegister_cont(CMD_SETCONFIG,SSD_SETMASTER);
 		setRegister_cont(CMD_POWERMODE,SSD_POWERMODE);
 		setRegister_cont(CMD_MASTERCURRENT,SSD_MASTERCURRENT);
 		#if defined(SSD_GAMMASET)
@@ -311,17 +311,18 @@ void SSD_13XX::begin(bool avoidSPIinit)
 		setRegister_cont(CMD_CONTRASTA,SSD_CONTRAST_A);
 		setRegister_cont(CMD_CONTRASTB,SSD_CONTRAST_B);
 		setRegister_cont(CMD_CONTRASTC,SSD_CONTRAST_C);
+		#if !defined(_SSD_1331_96X64_H)
 		setRegister_cont(CMD_VPACOLORLVL,SSD_VPACOLORLVL);
 		setRegister_cont(CMD_VPBCOLORLVL,SSD_VPBCOLORLVL);
 		setRegister_cont(CMD_VPCCOLORLVL,SSD_VPCCOLORLVL);
-		#if defined(_SSD_1331_96X64_H)
+		#else
 			writecommand_cont(CMD_DIMMODESET);
 			writecommand_cont(0);
 			writecommand_cont(SSD_DIMMDESET_A);
 			writecommand_cont(SSD_DIMMDESET_B);
 			writecommand_cont(SSD_DIMMDESET_C);
 			writecommand_cont(SSD_DIMMDESET_PC);
-			setRegister_cont(CMD_PRECHARGE,SSD_PRECHARGE);
+			setRegister_cont(CMD_PHASEPERIOD,SSD_PRECHARGE);
 			setRegister_cont(CMD_PRECHARGEA,SSD_PRECHARGE_A);
 			setRegister_cont(CMD_PRECHARGEB,SSD_PRECHARGE_B);
 			setRegister_cont(CMD_PRECHARGEC,SSD_PRECHARGE_C);
@@ -437,7 +438,7 @@ void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
 				}
 				*/
 				
-				#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 				if (_currentMode == 8) {//was in powerMode?
 					setRegister_cont(CMD_POWERMODE,SSD_POWERMODE);
 					//delay(120);//needed
@@ -446,11 +447,11 @@ void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
 				
 				if (_currentMode == 4){//was inverted?
 					//SSD1332 should need only CMD_NORMALDISPLAY!?!
-					#if defined(_SSD_1331_REG_H_)
-					writecommand_cont(CMD_DINVOF);
+					#if defined(SSD_1331_REGISTERS_H)
+					//writecommand_cont(CMD_DINVOF);
 					#endif
 				}
-				#if defined(_SSD_1331_REG_H_) || defined(_SSD_1351_REG_H_)
+				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
 				if (_currentMode == 9){//was in protect mode?
 					setRegister_cont(CMD_CMDLOCK,0x12);//unlock
 				}
@@ -472,7 +473,7 @@ void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
 				_currentMode = 13;
 			break;
 			case PWRSAVE: //power mode ON
-				#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 					writecommand_cont(CMD_POWERMODE);
 					writecommand_last(0x1A);
 					_currentMode = 8;
@@ -502,7 +503,7 @@ void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
 			break;
 			*/
 			case PROTECT:
-				#if defined(_SSD_1331_REG_H_) || defined(_SSD_1351_REG_H_)
+				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
 				setRegister_cont(CMD_CMDLOCK,0x16);//lock
 				_currentMode = 9;
 				#else
@@ -531,7 +532,7 @@ void SSD_13XX::setBrightness(uint8_t brightness)
 	if (brightness > 15) brightness = 15;
 	startTransaction();
 		writecommand_cont(CMD_MASTERCURRENT);
-		#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 			writecommand_last(brightness);
 		#else
 			writedata8_last(brightness);
@@ -549,7 +550,7 @@ void SSD_13XX::setArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 
 void SSD_13XX::copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16_t dx, int16_t dy)
 {
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	if (_portrait){//not tested yet
 		swapVals(sx0,sy0);
 		swapVals(sx1,sy1);
@@ -569,7 +570,7 @@ void SSD_13XX::copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16
 
 void SSD_13XX::dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	if (_portrait){//not tested yet
 		swapVals(x0,y0);
 		swapVals(x1,y1);
@@ -586,7 +587,7 @@ void SSD_13XX::dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 
 void SSD_13XX::moveArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	if (_portrait){//not tested yet
 		swapVals(x0,y0);
 		swapVals(x1,y1);
@@ -611,7 +612,7 @@ void SSD_13XX::setColorDepth(uint8_t depth)
 	if (depth == 16){
 		_colorDepth = 16;
 		_remapReg |= ((0 << 7) | (1 << 6));
-	#if defined(_SSD_1351_REG_H_)
+	#if defined(SSD_1351_REGISTERS_H)
 	} else if (depth == 18) {
 		_colorDepth = 16;
 		_remapReg |= ((1 << 7) | (0 << 6));
@@ -624,7 +625,7 @@ void SSD_13XX::setColorDepth(uint8_t depth)
 
 void SSD_13XX::setColorOrder(bool order)
 {
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1351_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
 		_remapReg |= ((order << 2));
 	#endif
 }
@@ -638,25 +639,25 @@ void SSD_13XX::setRotation(uint8_t m)
 	_width  = SSD_WIDTH;
 	_height = SSD_HEIGHT;
 	if (_rotation == 0){
-		#if defined(_SSD_1331_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H)
 			_remapReg |= ((1 << 4) | (1 << 1));//bit 4 & 1
-		#elif defined(_SSD_1332_REG_H_)
+		#elif defined(SSD_1332_REGISTERS_H)
 			_remapReg |= ((1 << 4));//bit 4
-		#elif defined(_SSD_1351_REG_H_)
+		#elif defined(SSD_1351_REGISTERS_H)
 			_remapReg |= ((1 << 4));//(1)
 		#else
 			//TODO
 		#endif
 	} else if (_rotation == 1){
-		#if defined(_SSD_1331_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H)
 			_remapReg |= ((1 << 4) | (1 << 0));//bit 4 & 0
 			swapVals(_width,_height);
 			_portrait = true;
-		#elif defined(_SSD_1332_REG_H_)
+		#elif defined(SSD_1332_REGISTERS_H)
 			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//bit 4 & 1 & 0
 			swapVals(_width,_height);
 			_portrait = true;
-		#elif defined(_SSD_1351_REG_H_)
+		#elif defined(SSD_1351_REGISTERS_H)
 			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//(2)
 			swapVals(_width,_height);
 			_portrait = true;
@@ -664,24 +665,24 @@ void SSD_13XX::setRotation(uint8_t m)
 			//TODO
 		#endif
 	} else if (_rotation == 2){
-		#if defined(_SSD_1331_REG_H_)
-		#elif defined(_SSD_1332_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H)
+		#elif defined(SSD_1332_REGISTERS_H)
 			_remapReg |= ((1 << 1));//bit 1
-		#elif defined(_SSD_1351_REG_H_)
+		#elif defined(SSD_1351_REGISTERS_H)
 			_remapReg |= ((1 << 1));//(3)
 		#else
 			//TODO
 		#endif
 	} else {
-		#if defined(_SSD_1331_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H)
 			_remapReg |= ((1 << 1) | (1 << 0));//bit 1 & 0
 			swapVals(_width,_height);
 			_portrait = true;
-		#elif defined(_SSD_1332_REG_H_)
+		#elif defined(SSD_1332_REGISTERS_H)
 			_remapReg |= ((1 << 0));//bit 0
 			swapVals(_width,_height);
 			_portrait = true;
-		#elif defined(_SSD_1351_REG_H_)
+		#elif defined(SSD_1351_REGISTERS_H)
 			_remapReg |= ((1 << 0));//(0)
 			swapVals(_width,_height);
 			_portrait = true;
@@ -738,7 +739,7 @@ void SSD_13XX::defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint
 	if (b+c > SSD_HEIGHT) return;
 	uint8_t spd = 0;
 	e = e % 4;
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 		if (e == 0){
 			spd = 0b00000000;
 		} else if (e == 1){
@@ -757,7 +758,7 @@ void SSD_13XX::defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint
 		writecommand_cont(d & 0xFF);
 		writecommand_last(spd);
 		endTransaction();
-	#elif defined(_SSD_1351_REG_H_)
+	#elif defined(SSD_1351_REGISTERS_H)
 		if (e == 1){
 			spd |= ((1 << 0));
 		} else if (e == 2){
@@ -914,7 +915,7 @@ void SSD_13XX::drawPixel(int16_t x, int16_t y, uint16_t color)
 //+++++++++OK
 void SSD_13XX::fillScreen(uint16_t color)
 {
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 		uint8_t r1,g1,b1;
 		_convertColor(color,r1,g1,b1);
 		startTransaction();
@@ -947,7 +948,7 @@ void SSD_13XX::fillScreen(uint16_t color)
 void SSD_13XX::fillScreen(uint16_t color1,uint16_t color2)
 {
 	startTransaction();
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	if (color1 != color2){
 		fillRect_cont(0,0,SSD_WIDTH,SSD_HEIGHT,color1,color2);
 	} else {
@@ -1899,7 +1900,7 @@ void SSD_13XX::pushColor(uint16_t color)
 
 void SSD_13XX::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,uint16_t f,uint16_t b,bool inverse)
 {
-	#if defined(_SSD_1351_REG_H_)
+	#if defined(SSD_1351_REGISTERS_H)
 		if (_portrait) swapVals(x,y);
 	#endif
 	#if defined(_FORCE_PROGMEM__)
@@ -2718,7 +2719,7 @@ void SSD_13XX::drawPixel_cont(int16_t x, int16_t y, uint16_t color)
 void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
 {
 	if (x0 < 0 || y0 < 0 || x1 < 0 || y1 < 0) return;
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 		int dly = _dlyHelper(x1-x0,y1-y0,CMD_DLY_LINE);
 		uint8_t r,g,b;
 		_convertColor(color,r,g,b);
@@ -2805,7 +2806,7 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 }
 
 
-#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	
 	void SSD_13XX::_sendLineData_cont(int16_t x0,int16_t y0,int16_t x1,int16_t y1)
 	{
@@ -2882,7 +2883,7 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 	//+++++++++OK
 	void SSD_13XX::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled)
 	{
-		#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 			if (w < 2 && h < 2) {
 				drawPixel_cont(x,y,color1);
 				return;
@@ -2937,7 +2938,7 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 			swapVals(x0, y0);
 			swapVals(x1, y1);
 		}
-		#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 			writecommand_cont(CMD_SETCOLUMN); //Column
 			writecommand_cont(x0); writecommand_cont(x1);
 			writecommand_cont(CMD_SETROW); //Page

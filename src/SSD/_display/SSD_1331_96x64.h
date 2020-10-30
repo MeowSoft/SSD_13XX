@@ -1,7 +1,7 @@
 #ifndef _SSD_1331_96X64_H
 #define _SSD_1331_96X64_H
 #include <stdio.h>
-#include "../_includes/SSD_1331_registers.h"
+#include "../Registers/SSD_1331_Registers.h"
 
 /*=========================================================================================
 	Part of SSD_13XX library

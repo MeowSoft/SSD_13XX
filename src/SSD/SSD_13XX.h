@@ -696,7 +696,7 @@ class SSD_13XX : public Print {
 	bool 		boundaryCheck(int16_t xw,int16_t yh);
 	int16_t 	sizeCheck(int16_t origin,int16_t len,int16_t maxVal);
 	void 		setRegister_cont(const uint8_t cmd,uint8_t data);
-	#if defined(_SSD_1331_REG_H_) || defined(_SSD_1332_REG_H_)
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	void 		_fillUtility(bool filling);
 	int			_dlyHelper(int16_t w,int16_t h,int maxDly);
 	void 		_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b);
