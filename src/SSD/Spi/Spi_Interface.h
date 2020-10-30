@@ -20,6 +20,9 @@ class Spi_Interface {
         virtual void writecommand_last(const uint8_t c) = 0;
         virtual void writedata8_last(uint8_t c) = 0;
         virtual void writedata16_last(uint16_t d) = 0;
+
+        virtual void _pushColors_cont(uint16_t data,uint32_t times) = 0;
+        virtual void closeTransaction(void) = 0;
 };
 
 #ifdef SPI_NAMESPACE

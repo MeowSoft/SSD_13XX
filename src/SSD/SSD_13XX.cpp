@@ -2591,12 +2591,7 @@ void SSD_13XX::_charLineRender(
 		}
 	}
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
-	{
-		do {
-			writedata16_cont(data);
-		} while (--times > 0);
-	}
+
 #elif defined(ESP8266)
 	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
 	{
@@ -2952,16 +2947,15 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 	}
 
 
+    #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
+    #else
 	void SSD_13XX::closeTransaction(void)
 	{
-		#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-			writecommand_last(CMD_NOP);
-		#else
-			disableCS();
-		#endif
+		disableCS();
 		endTransaction();
 	}
-
+    #endif
+    
 /*
 void SSD_13XX::printPacket(word data,uint8_t count){
   for (int i=count-1; i>=0; i--){

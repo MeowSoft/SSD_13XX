@@ -67,6 +67,9 @@ namespace SPI_NAMESPACE {
             void writedata8_last(uint8_t c);
             void writedata16_last(uint16_t d);
 
+            void _pushColors_cont(uint16_t data,uint32_t times);
+            void closeTransaction(void);
+
             #if !defined (SPI_HAS_TRANSACTION)
             void SetBitrate(uint32_t rate) override;
             #endif

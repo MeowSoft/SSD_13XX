@@ -36,4 +36,8 @@ inline void writedata8_last(uint8_t c) { Spi_.writedata8_last(c); }
 
 inline void writedata16_last(uint16_t d) { Spi_.writedata16_last(d); }
 
+inline void _pushColors_cont(uint16_t data,uint32_t times) { Spi_._pushColors_cont(data, times); }
+
+inline void closeTransaction(void) { Spi_.closeTransaction(); }
+
 #endif

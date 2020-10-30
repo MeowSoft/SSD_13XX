@@ -610,7 +610,10 @@ class SSD_13XX : public Print {
 /* ========================================================================
 					       Helpers
    ========================================================================*/
+    #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
 	void 		closeTransaction(void);
+    #endif
+
 	void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
 	void		drawCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,uint16_t color);
 	void		fillCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,int16_t delta, uint16_t color);
@@ -638,7 +641,10 @@ class SSD_13XX : public Print {
 	void 		drawPixel_cont(int16_t x, int16_t y, uint16_t color);
 	void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
+
+    #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
 	void 		_pushColors_cont(uint16_t data,uint32_t times);
+    #endif
 
 	#if defined(_SSD_SIZEOPTIMIZER)
 		#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)

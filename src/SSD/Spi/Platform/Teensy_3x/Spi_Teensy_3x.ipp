@@ -48,6 +48,17 @@ PREFIX void Spi_Teensy_3x::writedata16_last(uint16_t d) {
     waitTransmitComplete(mcr);
 }
 
+PREFIX void Spi_Teensy_3x::_pushColors_cont(uint16_t data,uint32_t times) {
+    do {
+        writedata16_cont(data);
+    } while (--times > 0);
+}
+
+PREFIX void Spi_Teensy_3x::closeTransaction(void) {
+    writecommand_last(nopCmd_);
+    endTransaction();
+}
+
 //Here's Paul Stoffregen SPI FIFO magic in action...
 PREFIX void Spi_Teensy_3x::waitFifoNotFull(void) {
     uint32_t sr;
