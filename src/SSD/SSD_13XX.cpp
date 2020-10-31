@@ -47,28 +47,6 @@
 	}
 #endif
 
-
-
-/*********************************************************
-*******************    some SPI stuff     ****************
-**********************************************************/
-#if defined(__AVR__)
-//-----------------Arduino Uno, Leonardo, Mega, Teensy 2.0, any 8 bit AVR
-
-#elif defined(__SAM3X8E__)
-//------------------------------------------Arduino Due
-
-#elif defined(__MKL26Z64__)
-//-----------------------------------------Teensy LC
-
-#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-//-----------------------------------------Teensy 3.0 & 3.1 & 3.2
-
-#else
-// ESP8266, Legacy
-
-#endif
-
 /*********************************************************
 ************** Var init and SPI preparation **************
 **********************************************************/
@@ -93,22 +71,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 	_textForeground = _textBackground = _defaultFgColor;//text transparent
 	_arcAngleMax 	= 360;
 	_arcAngleOffset = -90;
-	#if defined(SPI_HAS_TRANSACTION)
-		SSD_13XXSPI = SPISettings(_common_max_SPI_speed, MSBFIRST, SPI_MODE0);
-	#endif
-#if defined(__AVR__)//(avr) Any 8Bit AVR
 
-#elif defined(__SAM3X8E__)//(arm) DUE
-
-#elif defined(__MKL26Z64__)//(arm) Teensy LC (preliminary)
-
-#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-
-#elif defined(ESP8266)//(arm) XTENSA ESP8266
-
-#else//(xxx) Rest of CPU
-
-#endif
 	if (_rst != 255) {
 		pinMode(_rst, OUTPUT);
 		digitalWrite(_rst, HIGH);
@@ -2411,44 +2374,6 @@ void SSD_13XX::_charLineRender(
 }
 
 
-/*
- ----------------- PushColor stream --------------------------------
-*/
-#if defined(__AVR__)
-
-#elif defined(__SAM3X8E__)
-
-#elif defined(__MKL26Z64__)
-
-#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-
-#elif defined(ESP8266)
-
-#else
-
-#endif
-/* -------------------------------------------------------------------------------------------
-++++++++++++++++++++++++++++++++ Size Optimizations ++++++++++++++++++++++++++++++++++++++++++
-always inline routines dublicate the entire function inside chunks of code for speed during
-compiling, this is acceptable for cpu with lot of code space (like Teensy 3.x, DUE) but
-can increase dramatically the amount of code for UNO and similar.
-For this reason some function are now normal for all CPU, this decrease a fraction of the
-overall speed but decrease the amount of space occupied by code.
-In addition, there's an user option to decrease a lot the space, enabled for small resources CPU.
-I'm sorry for the complicated preprocessor #if #else and the amount of code inside library for
-fix this but is the only 'fast way' I found to acieve this!
---------------------------------------------------------------------------------------------*/
-
-
-#if defined(_SSD_SIZEOPTIMIZER)
-/* ========================================================================
-	-------------------- Common low level commands ------------------------
-	Teensy 3.x uses different functions, This are for all the rest of MCU's
-   ========================================================================*/
-	#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-
-	#endif
-#endif
 /* ========================================================================
 					    Fast Common Graphic Primitives
    ========================================================================*/

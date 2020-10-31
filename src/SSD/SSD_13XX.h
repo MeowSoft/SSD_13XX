@@ -98,10 +98,6 @@ Icon Render              1754
 	//#include "_fonts/nullfont.c"
 #endif
 
-#if defined(SPI_HAS_TRANSACTION)
-	static SPISettings SSD_13XXSPI;
-#endif
-
 #if !defined(swapVals)
 	#if defined(ESP8266)
 		#define swapVals(a, b) { int16_t t = a; a = b; b = t; }
@@ -213,9 +209,6 @@ class SSD_13XX : public Print {
 	//------------------------------- SCROLL ----------------------------------------------------
 	void 		defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint8_t e);
 	boolean		scroll(bool active);
-	#if !defined (SPI_HAS_TRANSACTION)
-	void 		setBitrate(uint32_t n);//will be deprecated
-	#endif
 	//------------------------------- COLOR ----------------------------------------------------
 	uint16_t 		gradient(uint8_t val);
 	uint16_t 		colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div=100);
@@ -232,30 +225,6 @@ class SSD_13XX : public Print {
 	volatile int16_t		_width, _height, _cursorX, _cursorY;
 	volatile bool			_filled;
 	volatile uint8_t		_remapReg;
-	
-/* ========================================================================
-					       Low Level SPI Routines
-   ========================================================================*/
-/* ----------------- AVR (UNO,Duemilanove, etc.) ------------------------*/
-	#if defined(__AVR__)
-
-/* -----------------  ARM (DUE)  ------------------------*/
-	#elif defined(__SAM3X8E__)
-
-/* ----------------- ARM (Teensy LC) ------------------------*/
-	#elif defined(__MKL26Z64__)
-
-/* ----------------- ARM (Teensy 3.0, Teensy 3.1, Teensy 3.2) ------------------------*/
-	#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-
-/* ----------------- ARM (XTENSA ESP8266) ------------------------*/
-	#elif defined(ESP8266)
-
-/* ----------------- UNKNOWN (Legacy) ------------------------*/
-	#else
-	
-
-	#endif
 
  private:
  
@@ -288,26 +257,9 @@ class SSD_13XX : public Print {
 	uint16_t				_defaultBgColor;
 	uint16_t				_defaultFgColor;
 
-   /* All functions here are active only when _SSD_SIZEOPTIMIZER is NOT active. */
-   #if !defined(_SSD_SIZEOPTIMIZER)
-/* ========================================================================
-	-------------------- Common low level commands ------------------------
-	Teensy 3.x uses different functions, This are for all the rest of MCU's
-   ========================================================================*/
-		#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-
-		#endif
-
-	#endif
-
-
 /* ========================================================================
 					       Helpers
    ========================================================================*/
-    #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-	//void 		closeTransaction(void);
-    #endif
-
 	void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
 	void		drawCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,uint16_t color);
 	void		fillCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,int16_t delta, uint16_t color);
@@ -335,16 +287,6 @@ class SSD_13XX : public Print {
 	void 		drawPixel_cont(int16_t x, int16_t y, uint16_t color);
 	void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
-
-    #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-	//void 		_pushColors_cont(uint16_t data,uint32_t times);
-    #endif
-
-	#if defined(_SSD_SIZEOPTIMIZER)
-		#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-
-		#endif	
-	#endif
 
 	//LPGO
 	int						_STRlen_helper(const char* buffer,int len);
