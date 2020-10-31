@@ -83,7 +83,6 @@ Icon Render              1754
 #include "Print.h"
 #include <SPI.h>
 
-#include "Spi/SpiMethods.h"
 #include "_includes/_cpuCommons.h"
 #include "_includes/_common_16bit_colors.h"
 #include "_settings/SSD_13XX_settings.h"
@@ -243,51 +242,6 @@ class SSD_13XX : public Print {
    ========================================================================*/
 /* ----------------- AVR (UNO,Duemilanove, etc.) ------------------------*/
 	#if defined(__AVR__)
-		volatile uint8_t 	*dataport, *clkport, *csport, *rsport;
-		uint8_t  			datapinmask, clkpinmask, cspinmask, dcpinmask;
-		uint8_t 			_cs,_dc;
-
-		void spiwrite(uint8_t c)
-		__attribute__((always_inline)) {
-			SPDR = c;//load your outgoing data into the SPI shift reg's data register
-			while(!(SPSR & _BV(SPIF)));//wait for the data to be transmitted on MOSI
-		}
-
-
-		void spiwrite16(uint16_t c)
-		__attribute__((always_inline)) {
-			spiwrite(c >> 8); spiwrite(c);
-		}
-
-		void enableCommandStream(void)
-		__attribute__((always_inline)) {
-			*rsport &= ~dcpinmask;//low
-		}
-
-		void enableDataStream(void)
-		__attribute__((always_inline)) {
-			*rsport |= dcpinmask;//hi
-		}
-
-		void startTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.beginTransaction(SSD_13XXSPI);
-			#endif
-				*csport &= ~cspinmask;//low
-		}
-
-		void endTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.endTransaction();
-			#endif
-		}
-
-		void disableCS(void)
-		__attribute__((always_inline)) {
-			*csport |= cspinmask;//hi
-		}
 
 /* -----------------  ARM (DUE)  ------------------------*/
 	#elif defined(__SAM3X8E__)
@@ -585,13 +539,7 @@ class SSD_13XX : public Print {
 
 	#if defined(_SSD_SIZEOPTIMIZER)
 		#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-			void 		writecommand_cont(const uint8_t c);
-			void 		writecommand16_cont(uint16_t c);
-			void 		writedata8_cont(uint8_t c);
-			void 		writedata16_cont(uint16_t d);
-			void 		writecommand_last(const uint8_t c);
-			void 		writedata8_last(uint8_t c);
-			void 		writedata16_last(uint16_t d);
+
 		#endif	
 	#endif
 

@@ -17,6 +17,7 @@
 ===========================================================================================*/
 
 #include "SSD_13XX.h"
+#include "Spi/SpiMethods.h"
 
 /*********************************************************
 ********************** constructors **********************
@@ -58,20 +59,7 @@
 **********************************************************/
 #if defined(__AVR__)
 //-----------------Arduino Uno, Leonardo, Mega, Teensy 2.0, any 8 bit AVR
-	#if !defined (SPI_HAS_TRANSACTION)
-	void SSD_13XX::setBitrate(uint32_t n)
-	{
-		if (n >= 8000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV2);
-		} else if (n >= 4000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV4);
-		} else if (n >= 2000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV8);
-		} else {
-			SPI.setClockDivider(SPI_CLOCK_DIV16);
-		}
-	}
-	#endif
+
 #elif defined(__SAM3X8E__)
 //------------------------------------------Arduino Due
 
@@ -131,22 +119,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 		SSD_13XXSPI = SPISettings(_common_max_SPI_speed, MSBFIRST, SPI_MODE0);
 	#endif
 #if defined(__AVR__)//(avr) Any 8Bit AVR
-	pinMode(_dc, OUTPUT);
-	pinMode(_cs, OUTPUT);
-	csport    = portOutputRegister(digitalPinToPort(_cs));
-	rsport    = portOutputRegister(digitalPinToPort(_dc));
-	cspinmask = digitalPinToBitMask(_cs);
-	dcpinmask = digitalPinToBitMask(_dc);
-    if (!avoidSPIinit) SPI.begin();
-	#if !defined(SPI_HAS_TRANSACTION)
-		if (!avoidSPIinit){
-			SPI.setClockDivider(SPI_CLOCK_DIV2); // 8 MHz
-			SPI.setBitOrder(MSBFIRST);
-			SPI.setDataMode(SPI_MODE0);
-		}
-	#endif
-	*csport |= cspinmask;//hi
-	enableDataStream();
+
 #elif defined(__SAM3X8E__)//(arm) DUE
 
 #elif defined(__MKL26Z64__)//(arm) Teensy LC (preliminary)
@@ -2532,17 +2505,7 @@ void SSD_13XX::_charLineRender(
  ----------------- PushColor stream --------------------------------
 */
 #if defined(__AVR__)
-	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times){
-		uint8_t i;
-		enableDataStream();
-		while(times--) {
-			for (i=0;i<2;i++){
-				while(!(SPSR & (1 << SPIF)));
-				SPDR = (data >> (8 - (i*8)));
-			}
-		}
-		while(!(SPSR & (1 << SPIF)));
-	}
+
 #elif defined(__SAM3X8E__)
 
 #elif defined(__MKL26Z64__)

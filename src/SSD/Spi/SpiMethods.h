@@ -6,7 +6,7 @@
 
 #include "Platform/Teensy_3x/Spi_Teensy_3x.h"
 
-USE_NAMESPACE_SPI;
+USE_NAMESPACE_SPI
 
 static Spi_Teensy_3x Spi_ = Spi_Teensy_3x();
   
@@ -26,10 +26,26 @@ inline void InitSpi(
 
 #include "Platform/Due/Spi_Due.h"
 
-USE_NAMESPACE_SPI;
+USE_NAMESPACE_SPI
 
 static Spi_Due Spi_ = Spi_Due();
   
+inline void InitSpi(
+    const uint8_t cs,
+    const uint8_t cd,
+    bool initSpi
+) {
+    Spi_.InitSpi(cs, cd, initSpi); 
+}
+
+#elif defined(__AVR__)
+
+#include "Platform/AVR/Spi_AVR.h"
+
+USE_NAMESPACE_SPI
+
+static Spi_AVR Spi_ = Spi_AVR();
+
 inline void InitSpi(
     const uint8_t cs,
     const uint8_t cd,
