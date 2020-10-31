@@ -248,79 +248,79 @@ class SSD_13XX : public Print {
 
 /* ----------------- ARM (Teensy LC) ------------------------*/
 	#elif defined(__MKL26Z64__)
-		uint8_t 			_mosi, _sclk;
-		bool				_useSPI1;
-		uint8_t 			_cs,_dc;
-		volatile uint8_t *dcportSet, *dcportClear, *csportSet, *csportClear;
-		uint8_t  cspinmask, dcpinmask;
+		// uint8_t 			_mosi, _sclk;
+		// bool				_useSPI1;
+		// uint8_t 			_cs,_dc;
+		// volatile uint8_t *dcportSet, *dcportClear, *csportSet, *csportClear;
+		// uint8_t  cspinmask, dcpinmask;
 
-		void spiwrite(uint8_t c)
-		__attribute__((always_inline)) {
-			if (_useSPI1){
-				SPI1.transfer(c);
-			} else {
-				SPI.transfer(c);
-			}
-		}
+		// void spiwrite(uint8_t c)
+		// __attribute__((always_inline)) {
+		// 	if (_useSPI1){
+		// 		SPI1.transfer(c);
+		// 	} else {
+		// 		SPI.transfer(c);
+		// 	}
+		// }
 
-		void spiwrite16(uint16_t c)
-		__attribute__((always_inline)) {
-			if (_useSPI1){
-				SPI1.transfer16(c);
-			} else {
-				SPI.transfer16(c);
-			}
-		}
+		// void spiwrite16(uint16_t c)
+		// __attribute__((always_inline)) {
+		// 	if (_useSPI1){
+		// 		SPI1.transfer16(c);
+		// 	} else {
+		// 		SPI.transfer16(c);
+		// 	}
+		// }
 
-		void enableCommandStream(void)
-		__attribute__((always_inline)) {
-				#if !defined(_TEENSYLC_FASTPORT)
-					digitalWriteFast(_dc,LOW);
-				#else
-					*dcportClear = dcpinmask;
-				#endif
-		}
+		// void enableCommandStream(void)
+		// __attribute__((always_inline)) {
+		// 		#if !defined(_TEENSYLC_FASTPORT)
+		// 			digitalWriteFast(_dc,LOW);
+		// 		#else
+		// 			*dcportClear = dcpinmask;
+		// 		#endif
+		// }
 
-		void enableDataStream(void)
-		__attribute__((always_inline)) {
-				#if !defined(_TEENSYLC_FASTPORT)
-					digitalWriteFast(_dc,HIGH);
-				#else
-					*dcportSet = dcpinmask;
-				#endif
-		}
+		// void enableDataStream(void)
+		// __attribute__((always_inline)) {
+		// 		#if !defined(_TEENSYLC_FASTPORT)
+		// 			digitalWriteFast(_dc,HIGH);
+		// 		#else
+		// 			*dcportSet = dcpinmask;
+		// 		#endif
+		// }
 
-		void startTransaction(void)
-		__attribute__((always_inline)) {
-			if (_useSPI1){
-				SPI1.beginTransaction(SSD_13XXSPI);
-			} else {
-				SPI.beginTransaction(SSD_13XXSPI);
-			}
-			#if !defined(_TEENSYLC_FASTPORT)
-				digitalWriteFast(_cs,LOW);
-			#else
-				*csportClear = cspinmask;
-			#endif
-		}
+		// void startTransaction(void)
+		// __attribute__((always_inline)) {
+		// 	if (_useSPI1){
+		// 		SPI1.beginTransaction(SSD_13XXSPI);
+		// 	} else {
+		// 		SPI.beginTransaction(SSD_13XXSPI);
+		// 	}
+		// 	#if !defined(_TEENSYLC_FASTPORT)
+		// 		digitalWriteFast(_cs,LOW);
+		// 	#else
+		// 		*csportClear = cspinmask;
+		// 	#endif
+		// }
 
-		void endTransaction(void)
-		__attribute__((always_inline)) {
-			if (_useSPI1){
-				SPI1.endTransaction();
-			} else {
-				SPI.endTransaction();
-			}
-		}
+		// void endTransaction(void)
+		// __attribute__((always_inline)) {
+		// 	if (_useSPI1){
+		// 		SPI1.endTransaction();
+		// 	} else {
+		// 		SPI.endTransaction();
+		// 	}
+		// }
 
-		void disableCS(void)
-		__attribute__((always_inline)) {
-			#if !defined(_TEENSYLC_FASTPORT)
-				digitalWriteFast(_cs,HIGH);
-			#else
-				*csportSet = cspinmask;
-			#endif
-		}
+		// void disableCS(void)
+		// __attribute__((always_inline)) {
+		// 	#if !defined(_TEENSYLC_FASTPORT)
+		// 		digitalWriteFast(_cs,HIGH);
+		// 	#else
+		// 		*csportSet = cspinmask;
+		// 	#endif
+		// }
 
 /* ----------------- ARM (Teensy 3.0, Teensy 3.1, Teensy 3.2) ------------------------*/
 	#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)

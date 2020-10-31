@@ -43,5 +43,21 @@
         Pin_DC, \
         Pin_Rst
         
+// OLED pins for Teensy LC:
+#elif defined (__MKL26Z64__)
+
+    const uint8_t Pin_Sck = 13;
+    const uint8_t Pin_Sdo = 11;
+    const uint8_t Pin_CS = 9;
+    const uint8_t Pin_Rst = 22;
+    const uint8_t Pin_DC = 23;
+
+    #define NEW_SSD_ARGS \
+        Pin_CS, \
+        Pin_DC, \
+        Pin_Rst, \
+        Pin_Sdo, \
+        Pin_Sck
+
 #endif
 #endif

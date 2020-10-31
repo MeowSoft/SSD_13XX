@@ -10,16 +10,17 @@ USE_NAMESPACE_SPI
 
 static Spi_Teensy_3x Spi_ = Spi_Teensy_3x();
   
+static uint8_t initError;
+
 inline void InitSpi(
     const uint8_t sdo,
     const uint8_t sck,
     const uint8_t cs,
     const uint8_t cd,
     uint8_t nop,
-    bool initSpi,
-    bool* initSuccess
+    bool initSpi
 ) {
-    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, initSuccess); 
+    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, &initError); 
 }
 
 #elif defined(__SAM3X8E__)
@@ -52,6 +53,27 @@ inline void InitSpi(
     bool initSpi
 ) {
     Spi_.InitSpi(cs, cd, initSpi); 
+}
+
+#elif defined(__MKL26Z64__)
+
+#include "Platform/Teensy_LC/Spi_Teensy_LC.h"
+
+USE_NAMESPACE_SPI
+
+static Spi_Teensy_LC Spi_ = Spi_Teensy_LC();
+
+static uint8_t initError;
+
+inline void InitSpi(
+    const uint8_t sdo,
+    const uint8_t sck,
+    const uint8_t cs,
+    const uint8_t cd,
+    uint8_t nop,
+    bool initSpi
+) {
+    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, &initError); 
 }
 
 #endif

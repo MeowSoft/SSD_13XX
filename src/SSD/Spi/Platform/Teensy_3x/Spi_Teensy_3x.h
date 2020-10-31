@@ -23,7 +23,7 @@ class Spi_Teensy_3x : public Spi_Interface {
             const uint8_t cd,
             uint8_t nop,
             bool initSpi,
-            bool* initSuccess
+            uint8_t* errorResult
         );
 
         void startTransaction(void);

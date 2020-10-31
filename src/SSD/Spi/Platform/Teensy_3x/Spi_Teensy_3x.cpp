@@ -18,18 +18,20 @@ void Spi_Teensy_3x::InitSpi(
     const uint8_t cd,
     uint8_t nop,
     bool initSpi,
-    bool* initSuccess
+    uint8_t* errorResult
 ) {
+    // Init error result.
+    *errorResult = 0;
 
     // If SPI pins aren't valid, then set error and bail.
 	if (!SPI_PINS_VALID(sdo, sck)){
-        *initSuccess = false;
+        bitSet(*errorResult,0);
 		return;
     }
 
     // If CS pin is invalid, then bail.
     if (!SPI.pinIsChipSelect(cd, cs)) {
-        *initSuccess = false;
+        bitSet(*errorResult, 1);
         return;
     }
 
@@ -40,8 +42,6 @@ void Spi_Teensy_3x::InitSpi(
 	if (initSpi) SPI.begin();
     csDataMask_ = SPI.setCS(cs);
     csCommandMask_ = csDataMask_ | SPI.setCS(cd);
-
-    *initSuccess = true;
 }
 
 #if !defined (SPI_HAS_TRANSACTION)
