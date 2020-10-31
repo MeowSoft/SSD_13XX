@@ -1,7 +1,7 @@
 #include "Spi_Due.h"
 
 // Only compile for ARM (Due)
-#ifdef __SAM3X8E__
+#if defined(__SAM3X8E__)
 
 #if defined(SPI_HAS_TRANSACTION)
 #define MAX_SPI_SPEED ((uint32_t)24000000)

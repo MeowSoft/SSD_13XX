@@ -253,47 +253,7 @@ class SSD_13XX : public Print {
 
 /* ----------------- UNKNOWN (Legacy) ------------------------*/
 	#else
-		uint8_t 			_cs,_dc;
-
-		void spiwrite(uint8_t c)
-		__attribute__((always_inline)) {
-			SPI.transfer(c);
-		}
-
-		void spiwrite16(uint16_t c)
-		__attribute__((always_inline)) {
-			SPI.transfer(c >> 8); SPI.transfer(c >> 0);
-		}
-
-		void enableCommandStream(void)
-		__attribute__((always_inline)) {
-			digitalWrite(_dc,LOW);
-		}
-
-		void enableDataStream(void)
-		__attribute__((always_inline)) {
-			digitalWrite(_dc,HIGH);
-		}
-
-		void startTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.beginTransaction(SSD_13XXSPI);
-			#endif
-				digitalWrite(_cs,LOW);
-		}
-
-		void endTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.endTransaction();
-			#endif
-		}
-
-		void disableCS(void)
-		__attribute__((always_inline)) {
-			digitalWrite(_cs,HIGH);
-		}
+	
 
 	#endif
 

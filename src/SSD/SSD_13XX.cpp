@@ -65,21 +65,8 @@
 //-----------------------------------------Teensy 3.0 & 3.1 & 3.2
 
 #else
-// ESP8266, 
-	#if !defined (SPI_HAS_TRANSACTION)
-	void SSD_13XX::setBitrate(uint32_t n)
-	{
-		if (n >= 8000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV2);
-		} else if (n >= 4000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV4);
-		} else if (n >= 2000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV8);
-		} else {
-			SPI.setClockDivider(SPI_CLOCK_DIV16);
-		}
-	}
-	#endif
+// ESP8266, Legacy
+
 #endif
 
 /*********************************************************
@@ -120,18 +107,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 #elif defined(ESP8266)//(arm) XTENSA ESP8266
 
 #else//(xxx) Rest of CPU
-	pinMode(_dc, OUTPUT);
-	pinMode(_cs, OUTPUT);
-	if (!avoidSPIinit) SPI.begin();
-	#if !defined(SPI_HAS_TRANSACTION)
-		if (!avoidSPIinit){
-			SPI.setClockDivider(4);
-			SPI.setBitOrder(MSBFIRST);
-			SPI.setDataMode(SPI_MODE0);
-		}
-	#endif
-	digitalWrite(_cs,HIGH);
-	enableDataStream();
+
 #endif
 	if (_rst != 255) {
 		pinMode(_rst, OUTPUT);
@@ -2449,13 +2425,7 @@ void SSD_13XX::_charLineRender(
 #elif defined(ESP8266)
 
 #else
-	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
-	{
-		enableDataStream();
-			while(times--) {
-			SPI.transfer(data >> 8); SPI.transfer(data);
-		}
-	}
+
 #endif
 /* -------------------------------------------------------------------------------------------
 ++++++++++++++++++++++++++++++++ Size Optimizations ++++++++++++++++++++++++++++++++++++++++++
