@@ -60,16 +60,12 @@
 
 #elif defined(__MKL26Z64__)
 //-----------------------------------------Teensy LC
-	// #if !defined (SPI_HAS_TRANSACTION)
-	// void SSD_13XX::setBitrate(uint32_t n)
-	// {
-	// 	//nop
-	// }
-	// #endif
+
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 //-----------------------------------------Teensy 3.0 & 3.1 & 3.2
 
 #else
+// ESP8266, 
 	#if !defined (SPI_HAS_TRANSACTION)
 	void SSD_13XX::setBitrate(uint32_t n)
 	{
@@ -118,68 +114,11 @@ void SSD_13XX::begin(bool avoidSPIinit)
 #elif defined(__SAM3X8E__)//(arm) DUE
 
 #elif defined(__MKL26Z64__)//(arm) Teensy LC (preliminary)
-	// pinMode(_dc, OUTPUT);
-	// pinMode(_cs, OUTPUT);
-	// if (_useSPI1){
-	// 	if ((_mosi == 0 || _mosi == 21) && (_sclk == 20)) {//identify alternate SPI channel 1 (24Mhz)
-	// 		SPI1.setMOSI(_mosi);
-	// 		SPI1.setSCK(_sclk);
-	// 		if (!avoidSPIinit) SPI1.begin();
-	// 		_useSPI1 = true; //confirm
-	// 	} else {
-	// 		bitSet(_initError,0);
-	// 		return;
-	// 	}
-	// 	if (!SPI.pinIsChipSelect(_cs)) {//ERROR
-	// 		bitSet(_initError,1);
-	// 		return;
-	// 	}
-	// } else {
-	// 	if ((_mosi == 11 || _mosi == 7) && (_sclk == 13 || _sclk == 14)) {//valid SPI pins?
-	// 		SPI.setMOSI(_mosi);
-	// 		SPI.setSCK(_sclk);
-	// 		if (!avoidSPIinit) SPI.begin();
-	// 		_useSPI1 = false; //confirm
-	// 	} else {
-	// 		bitSet(_initError,0);
-	// 		return;
-	// 	}
-	// 	if (!SPI.pinIsChipSelect(_cs)) {//ERROR
-	// 		bitSet(_initError,1);
-	// 		return;
-	// 	}
-	// }
-	// #if defined(_TEENSYLC_FASTPORT)
-	// 	csportSet    	= portSetRegister(digitalPinToPort(_cs));
-	// 	csportClear     = portClearRegister(digitalPinToPort(_cs));
-	// 	cspinmask 		= digitalPinToBitMask(_cs);
-	// 	dcportSet       = portSetRegister(digitalPinToPort(_dc));
-	// 	dcportClear     = portClearRegister(digitalPinToPort(_dc));
-	// 	dcpinmask	    = digitalPinToBitMask(_dc);
-	// 	*csportSet 		= cspinmask;
-	// #else
-	// 	digitalWriteFast(_cs,HIGH);
-	// #endif
-	// 	enableDataStream();
+
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 
 #elif defined(ESP8266)//(arm) XTENSA ESP8266
-	pinMode(_dc, OUTPUT);
-	pinMode(_cs, OUTPUT);
-	if (!avoidSPIinit) SPI.begin();
-	#if !defined(SPI_HAS_TRANSACTION)
-		if (!avoidSPIinit){
-			SPI.setClockDivider(4);
-			SPI.setBitOrder(MSBFIRST);
-			SPI.setDataMode(SPI_MODE0);
-		}
-	#endif
-	#if defined(ESP8266) && defined(_ESP8266_STANDARDMODE)
-		digitalWrite(_cs,HIGH);
-	#else
-		GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, _pinRegister(_cs));//H
-	#endif
-	enableDataStream();
+
 #else//(xxx) Rest of CPU
 	pinMode(_dc, OUTPUT);
 	pinMode(_cs, OUTPUT);
@@ -2504,28 +2443,11 @@ void SSD_13XX::_charLineRender(
 #elif defined(__SAM3X8E__)
 
 #elif defined(__MKL26Z64__)
-	// void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
-	// {
-	// 	enableDataStream();
-	// 	while(times--) {
-	// 		if (_useSPI1){
-	// 			SPI1.transfer16(data);
-	// 		} else {
-	// 			SPI.transfer16(data);
-	// 		}
-	// 	}
-	// }
+
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 
 #elif defined(ESP8266)
-	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
-	{
-		enableDataStream();
-		while(times--) { spiwrite16(data); }
-		//alternative faster (but currently not work at 80Mhz or more)
-		//uint8_t pattern[2] = { (uint8_t)(data >> 8), (uint8_t)(data >> 0) };
-		//SPI.writePattern(pattern, 2, times);
-	}
+
 #else
 	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
 	{

@@ -7,6 +7,8 @@ void setup() {
     Serial.begin(9600);
     while (!Serial) {;}
 
+    Serial.println("Hello!!!");
+
     benchmark_setup();
     benchmark_run();
 }

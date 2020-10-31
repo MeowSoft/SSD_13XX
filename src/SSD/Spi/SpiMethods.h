@@ -76,6 +76,22 @@ inline void InitSpi(
     Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, &initError); 
 }
 
+#elif defined(ESP8266)
+
+#include "Platform/ESP8266/Spi_ESP8266.h"
+
+USE_NAMESPACE_SPI
+
+static Spi_ESP8266 Spi_ = Spi_ESP8266();
+
+inline void InitSpi(
+    const uint8_t cs,
+    const uint8_t cd,
+    bool initSpi
+) {
+    Spi_.InitSpi(cs, cd, initSpi); 
+}
+
 #endif
 
 inline void startTransaction(void) { Spi_.startTransaction(); }

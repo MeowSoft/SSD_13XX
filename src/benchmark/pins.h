@@ -59,5 +59,17 @@
         Pin_Sdo, \
         Pin_Sck
 
+// OLED pins for ESP8266:
+#elif defined(ESP8266)
+
+    const uint8_t Pin_CS = 15;
+    const uint8_t Pin_Rst = 2;
+    const uint8_t Pin_DC = 0;
+
+    #define NEW_SSD_ARGS \
+        Pin_CS, \
+        Pin_DC, \
+        Pin_Rst
+        
 #endif
 #endif
