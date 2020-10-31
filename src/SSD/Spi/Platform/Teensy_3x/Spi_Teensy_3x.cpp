@@ -3,36 +3,45 @@
 // Only compile for Teensy 3.x
 #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 
+// Teensy max SPI speed.
 #define MAX_SPI_SPEED ((uint32_t)30000000)
+
+// Valid sdo and sck pins for teensy hardware SPI.
 #define SPI_PINS_VALID(sdo, sck) ((sdo == 11 || sdo == 7) && (sck == 13 || sck == 14))
 
-#ifdef SPI_NAMESPACE
-using namespace SPI_NAMESPACE;
-#endif
+USE_NAMESPACE_SPI
 
-void Spi_Teensy_3x::InitSpi(SpiSetup initData) {
+void Spi_Teensy_3x::InitSpi(
+    const uint8_t sdo,
+    const uint8_t sck,
+    const uint8_t cs,
+    const uint8_t cd,
+    uint8_t nop,
+    bool initSpi,
+    bool* initSuccess
+) {
 
     // If SPI pins aren't valid, then set error and bail.
-	if (!SPI_PINS_VALID(initData.sdo, initData.sck)){
-        *initData.initSuccess = false;
+	if (!SPI_PINS_VALID(sdo, sck)){
+        *initSuccess = false;
 		return;
     }
 
     // If CS pin is invalid, then bail.
-    if (!SPI.pinIsChipSelect(initData.cd, initData.cs)) {
-        *initData.initSuccess = false;
+    if (!SPI.pinIsChipSelect(cd, cs)) {
+        *initSuccess = false;
         return;
     }
 
     // Otherwise, continue with setup.
     spiSettings_ = SPISettings(MAX_SPI_SPEED, MSBFIRST, SPI_MODE0);
-    SPI.setMOSI(initData.sdo);
-    SPI.setSCK(initData.sck);
-	if (initData.initSpi) SPI.begin();
-    csDataMask_ = SPI.setCS(initData.cs);
-    csCommandMask_ = csDataMask_ | SPI.setCS(initData.cd);
+    SPI.setMOSI(sdo);
+    SPI.setSCK(sck);
+	if (initSpi) SPI.begin();
+    csDataMask_ = SPI.setCS(cs);
+    csCommandMask_ = csDataMask_ | SPI.setCS(cd);
 
-    *initData.initSuccess = true;
+    *initSuccess = true;
 }
 
 #if !defined (SPI_HAS_TRANSACTION)

@@ -6,12 +6,12 @@
 #define _GetWidth oled_->width
 #define _GetHeight oled_->height
 #define _FillScreen oled_->fillScreen
-#define _DrawLine oled_->DrawLine_op
-#define _DrawHLine oled_->DrawHLine_op
-#define _DrawVLine oled_->DrawVLine_op
-#define _DrawFilledRectangle oled_->DrawFilledRectangle_op
-#define _DrawRectangle oled_->DrawRectangle_op
-#define _SetRotation oled_->SetRotation
+#define _DrawLine oled_->drawLine
+#define _DrawHLine oled_->drawFastHLine
+#define _DrawVLine oled_->drawFastVLine
+#define _DrawFilledRectangle oled_->fillRect
+#define _DrawRectangle oled_->drawRect
+#define _SetRotation oled_->setRotation
 #define _ChangeMode oled_->changeMode
 #else
 #define _GetWidth oled_->width
@@ -51,7 +51,8 @@ void benchmark_run() {
         _FillScreen(0x0000);
         _SetRotation(
             #ifdef USE_MINE
-            (SSD_13xx_Rotation_Modes_t)rotation
+            //(SSD_13xx_Rotation_Modes_t)rotation
+            rotation
             #else
             rotation
             #endif

@@ -6,14 +6,36 @@
 
 #include "Platform/Teensy_3x/Spi_Teensy_3x.h"
 
-#ifdef SPI_NAMESPACE
-using namespace SPI_NAMESPACE;
-#endif
+USE_NAMESPACE_SPI;
 
 static Spi_Teensy_3x Spi_ = Spi_Teensy_3x();
   
-inline void InitSpi(SpiSetup initData) {
-    Spi_.InitSpi(initData); 
+inline void InitSpi(
+    const uint8_t sdo,
+    const uint8_t sck,
+    const uint8_t cs,
+    const uint8_t cd,
+    uint8_t nop,
+    bool initSpi,
+    bool* initSuccess
+) {
+    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, initSuccess); 
+}
+
+#elif defined(__SAM3X8E__)
+
+#include "Platform/Due/Spi_Due.h"
+
+USE_NAMESPACE_SPI;
+
+static Spi_Due Spi_ = Spi_Due();
+  
+inline void InitSpi(
+    const uint8_t cs,
+    const uint8_t cd,
+    bool initSpi
+) {
+    Spi_.InitSpi(cs, cd, initSpi); 
 }
 
 #endif

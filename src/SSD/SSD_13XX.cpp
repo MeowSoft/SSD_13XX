@@ -26,9 +26,10 @@
 #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin,const uint8_t mosi,const uint8_t sclk)
 	{
+        Serial.println("MINE");
 		_rst  = rstpin;
         bool foo;
-        InitSpi(SpiSetup(mosi, sclk, cspin, dcpin, CMD_NOP, true, &foo));
+        InitSpi(mosi, sclk, cspin, dcpin, CMD_NOP, true, &foo);
 	}
 #elif defined(__MKL26Z64__) //Teensy LC
 	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin,const uint8_t mosi,const uint8_t sclk)
@@ -44,9 +45,9 @@
 #else //All the rest
 	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin)
 	{
-		_cs   = cspin;
-		_dc   = dcpin;
+        Serial.println("MINE");
 		_rst  = rstpin;
+        InitSpi(cspin, dcpin, true);
 	}
 #endif
 
@@ -73,17 +74,7 @@
 	#endif
 #elif defined(__SAM3X8E__)
 //------------------------------------------Arduino Due
-	#if !defined(SPI_HAS_TRANSACTION)
-	void SSD_13XX::setBitrate(uint32_t n)
-	{
-		uint32_t divider = 1;
-		while (divider < 255) {
-			if (n >= 84000000 / divider) break;
-			divider = divider - 1;
-		}
-		SPI.setClockDivider(divider);
-	}
-	#endif
+
 #elif defined(__MKL26Z64__)
 //-----------------------------------------Teensy LC
 	#if !defined (SPI_HAS_TRANSACTION)
@@ -94,12 +85,7 @@
 	#endif
 #elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
 //-----------------------------------------Teensy 3.0 & 3.1 & 3.2
-	#if !defined (SPI_HAS_TRANSACTION)
-	void SSD_13XX::setBitrate(uint32_t n)
-	{
-		//nop
-	}
-	#endif
+
 #else
 	#if !defined (SPI_HAS_TRANSACTION)
 	void SSD_13XX::setBitrate(uint32_t n)
@@ -162,22 +148,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 	*csport |= cspinmask;//hi
 	enableDataStream();
 #elif defined(__SAM3X8E__)//(arm) DUE
-	pinMode(_dc, OUTPUT);
-	pinMode(_cs, OUTPUT);
-	csport    = digitalPinToPort(_cs);
-	rsport    = digitalPinToPort(_dc);
-	cspinmask = digitalPinToBitMask(_cs);
-	dcpinmask = digitalPinToBitMask(_dc);
-    if (!avoidSPIinit) SPI.begin();
-	#if !defined(SPI_HAS_TRANSACTION)
-		if (!avoidSPIinit){
-			SPI.setClockDivider(5); // 8 MHz
-			SPI.setBitOrder(MSBFIRST);
-			SPI.setDataMode(SPI_MODE0);
-		}
-	#endif
-	csport->PIO_SODR  |=  cspinmask;//HI
-	enableDataStream();
+
 #elif defined(__MKL26Z64__)//(arm) Teensy LC (preliminary)
 	pinMode(_dc, OUTPUT);
 	pinMode(_cs, OUTPUT);
@@ -2573,11 +2544,7 @@ void SSD_13XX::_charLineRender(
 		while(!(SPSR & (1 << SPIF)));
 	}
 #elif defined(__SAM3X8E__)
-	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
-	{
-		enableDataStream();
-		while(times--) { SPI.transfer16(data); }
-	}
+
 #elif defined(__MKL26Z64__)
 	void SSD_13XX::_pushColors_cont(uint16_t data,uint32_t times)
 	{
@@ -2629,41 +2596,6 @@ fix this but is the only 'fast way' I found to acieve this!
 	Teensy 3.x uses different functions, This are for all the rest of MCU's
    ========================================================================*/
 	#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-		void SSD_13XX::writecommand_cont(const uint8_t c)
-		{
-			enableCommandStream(); spiwrite(c);
-		}
-
-		void SSD_13XX::writecommand16_cont(const uint16_t c)
-		{
-			enableCommandStream(); spiwrite16(c);
-		}
-
-		void SSD_13XX::writedata8_cont(uint8_t c)
-		{
-			enableDataStream(); spiwrite(c);
-		}
-
-		void SSD_13XX::writedata16_cont(uint16_t d)
-		{
-			enableDataStream(); spiwrite16(d);
-		}
-
-		void SSD_13XX::writecommand_last(const uint8_t c)
-		{
-			enableCommandStream(); spiwrite(c); disableCS();
-		}
-
-
-		void SSD_13XX::writedata8_last(uint8_t c)
-		{
-			enableDataStream(); spiwrite(c); disableCS();
-		}
-
-		void SSD_13XX::writedata16_last(uint16_t d)
-		{
-			enableDataStream(); spiwrite16(d); disableCS();
-		}
 
 	#endif
 #endif
@@ -2949,13 +2881,9 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 
     #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
     #else
-	void SSD_13XX::closeTransaction(void)
-	{
-		disableCS();
-		endTransaction();
-	}
+
     #endif
-    
+
 /*
 void SSD_13XX::printPacket(word data,uint8_t count){
   for (int i=count-1; i>=0; i--){

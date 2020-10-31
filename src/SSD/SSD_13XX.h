@@ -291,50 +291,6 @@ class SSD_13XX : public Print {
 
 /* -----------------  ARM (DUE)  ------------------------*/
 	#elif defined(__SAM3X8E__)
-		Pio 				*dataport, *clkport, *csport, *rsport;
-		uint32_t  			datapinmask, clkpinmask, cspinmask, dcpinmask;
-		uint8_t 			_cs,_dc;
-
-		void spiwrite(uint8_t c)
-		__attribute__((always_inline)) {
-			SPI.transfer(c);
-		}
-
-		void spiwrite16(uint16_t c)
-		__attribute__((always_inline)) {
-			//SPI.transfer(c >> 8); SPI.transfer(c);
-			SPI.transfer16(c);
-		}
-
-		void enableCommandStream(void)
-		__attribute__((always_inline)) {
-			rsport->PIO_CODR |=  dcpinmask;//LO
-		}
-
-		void enableDataStream(void)
-		__attribute__((always_inline)) {
-			rsport->PIO_SODR |=  dcpinmask;//HI
-		}
-
-		void startTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.beginTransaction(SSD_13XXSPI);
-			#endif
-				csport->PIO_CODR |=  cspinmask;//LO
-		}
-
-		void endTransaction(void)
-		__attribute__((always_inline)) {
-			#if defined(SPI_HAS_TRANSACTION)
-				SPI.endTransaction();
-			#endif
-		}
-
-		void disableCS(void)
-		__attribute__((always_inline)) {
-			csport->PIO_SODR |=  cspinmask;//HI
-		}
 
 /* ----------------- ARM (Teensy LC) ------------------------*/
 	#elif defined(__MKL26Z64__)
@@ -582,26 +538,7 @@ class SSD_13XX : public Print {
 	Teensy 3.x uses different functions, This are for all the rest of MCU's
    ========================================================================*/
 		#if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-			void writecommand_cont(const uint8_t c)
-			__attribute__((always_inline)) { enableCommandStream(); spiwrite(c); }
 
-			void writecommand16_cont(uint16_t c)
-			__attribute__((always_inline)) { enableCommandStream(); spiwrite16(c); }
-
-			void writedata8_cont(uint8_t c)
-			__attribute__((always_inline)) { enableDataStream(); spiwrite(c); }
-
-			void writedata16_cont(uint16_t d)
-			__attribute__((always_inline)) { enableDataStream(); spiwrite16(d); }
-
-			void writecommand_last(const uint8_t c)
-			__attribute__((always_inline)) { enableCommandStream(); spiwrite(c); disableCS(); }
-
-			void writedata8_last(uint8_t c)
-			__attribute__((always_inline)) { enableDataStream(); spiwrite(c); disableCS(); }
-
-			void writedata16_last(uint16_t d)
-			__attribute__((always_inline)) { enableDataStream(); spiwrite16(d); disableCS(); }
 		#endif
 
 	#endif
@@ -611,7 +548,7 @@ class SSD_13XX : public Print {
 					       Helpers
    ========================================================================*/
     #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-	void 		closeTransaction(void);
+	//void 		closeTransaction(void);
     #endif
 
 	void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
@@ -643,7 +580,7 @@ class SSD_13XX : public Print {
 	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
 
     #if !defined(__MK20DX128__) && !defined(__MK20DX256__) && !defined(__MK64FX512__) && !defined(__MK66FX1M0__)
-	void 		_pushColors_cont(uint16_t data,uint32_t times);
+	//void 		_pushColors_cont(uint16_t data,uint32_t times);
     #endif
 
 	#if defined(_SSD_SIZEOPTIMIZER)

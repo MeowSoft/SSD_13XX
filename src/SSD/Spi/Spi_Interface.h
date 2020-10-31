@@ -1,12 +1,15 @@
 #ifndef SPIINTERFACE_H
 #define SPIINTERFACE_H
 
-#define SPI_NAMESPACE SpiNamespace
+#include "Spi_Config.h"
+#include <SPI.h>
 
-#ifdef SPI_NAMESPACE
-namespace SPI_NAMESPACE {
-#endif
+NAMESPACE_SPI 
 
+/**
+ * @brief 
+ * Interface class to define SPI methods for SSD_13XX.
+ */
 class Spi_Interface {
 
     public:
@@ -20,13 +23,14 @@ class Spi_Interface {
         virtual void writecommand_last(const uint8_t c) = 0;
         virtual void writedata8_last(uint8_t c) = 0;
         virtual void writedata16_last(uint16_t d) = 0;
-
         virtual void _pushColors_cont(uint16_t data,uint32_t times) = 0;
         virtual void closeTransaction(void) = 0;
+
+        #if !defined (SPI_HAS_TRANSACTION)
+        virtual void SetBitrate(uint32_t rate) = 0;
+        #endif
 };
 
-#ifdef SPI_NAMESPACE
-}
-#endif
+NAMESPACE_SPI_END
 
 #endif
