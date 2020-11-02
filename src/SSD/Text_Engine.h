@@ -56,6 +56,11 @@ uint8_t					_charSpacing;
 	uint8_t					_fontInterline;
 	bool 				_textWrap; // If set, 'wrap' text at right edge of display
 uint8_t					_fontRemapOffset;
+/* fot remap offset will remap sections of char to other sections
+		0: no remap
+		1:minus to CAPITAL  if (c > 96 && c < 123) c -= 32;
+		2:CAPITAl to minus  if (c > 64 && c < 91)  c += 32;
+	*/
 const tFont   		*	_currentFont;
 int						_spaceCharWidth;
 

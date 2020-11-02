@@ -6,6 +6,8 @@
 
 #include "SSD/Text_Engine.h"
 #include "SSD/_fonts/Terminal_9.c"
+#include "SSD/Graphics_Engine.h"
+#include "SSD/SSD_Util.h"
 
 #define _GetWidth oled_->width
 #define _GetHeight oled_->height
@@ -23,6 +25,16 @@
 #define _SetTextScale texter_->setTextScale
 #define _PrintText texter_->println
 #define _SetFont texter_->setFont
+
+#define _DrawArc graphics_->drawArc
+#define _FillCircle graphics_->fillCircle
+#define _DrawCircle graphics_->drawCircle
+#define _DrawTriangle graphics_->drawTriangle
+#define _FillTriangle graphics_->fillTriangle
+#define _DrawRoundRect graphics_->drawRoundRect
+#define _FillRoundRect graphics_->fillRoundRect
+
+#define _Color565 SSD_Util::Color565
 
 #else
 
@@ -45,6 +57,16 @@
 #define _PrintText oled_->println
 #define _SetFont oled_->setFont
 
+#define _DrawArc oled_->drawArc
+#define _FillCircle oled_->fillCircle
+#define _DrawCircle oled_->drawCircle
+#define _DrawTriangle oled_->drawTriangle
+#define _FillTriangle oled_->fillTriangle
+#define _DrawRoundRect oled_->drawRoundRect
+#define _FillRoundRect oled_->fillRoundRect
+
+#define _Color565 oled_->Color565
+
 #endif
 
 // Private methods.
@@ -54,14 +76,20 @@ void testFastLines(uint16_t color1, uint16_t color2);
 void testFilledRects(uint16_t color1, uint16_t color2);
 void testText();
 void testText2();
-
-
+void testArc(uint16_t color);
+void testFilledCircles(uint8_t radius, uint16_t color);
+void testCircles(uint8_t radius, uint16_t color);
+void testTriangles();
+void testFilledTriangles();
+void testRoundRects();
+void testFilledRoundRects();
 
 // The OLED.
 SSD_13XX* oled_;
 
 #ifdef USE_MINE
 Text_Engine* texter_;
+Graphics_Engine* graphics_;
 #endif
 
 void benchmark_setup() {
@@ -70,6 +98,8 @@ void benchmark_setup() {
     #ifdef USE_MINE
     texter_ = new Text_Engine();
     texter_->begin(oled_);
+    graphics_ = new Graphics_Engine();
+    graphics_->begin(oled_);
     #endif
 }
 
@@ -107,11 +137,27 @@ void benchmark_run() {
         delay(1000);
         testText2();
         delay(1000);
+        testArc(CYAN);
+        delay(1000);
+        testFilledCircles(5, MAGENTA);
+        delay(1000);
+        testCircles(5, WHITE);
+        delay(1000);
+        testTriangles();
+        delay(1000);
+        testFilledTriangles();
+        delay(1000);
+        testRoundRects();
+        delay(1000);
+        testFilledRoundRects();
+        delay(1000);
 
         _ChangeMode(SSD_13XX_modes::DISP_OFF);
         SerialPrintf("\r\n");
     }
 }
+
+/* #region Test methods: */
 
 void testFillScreen(uint16_t color) {
 
@@ -231,14 +277,6 @@ void testFilledRects(uint16_t color1, uint16_t color2) {
     SerialPrintf("    Filled rects: %d uSec\r\n", t);
 }
 
-void debugText() {
-    _FillScreen(0x0000);
-    _SetCursor(0, 0);
-    _SetTextColor(WHITE);
-    _SetTextScale(1);
-    _PrintText("Hello World!");
-}
-
 void testText() {
     _FillScreen(0x0000);
     unsigned long start = micros();
@@ -289,3 +327,177 @@ void testText2() {
     unsigned long t =  micros() - start;
     SerialPrintf("    Text 2: %d uSec\r\n", t);
 }
+
+void testArc(uint16_t color) {
+    unsigned long start;
+    uint16_t i;
+    uint16_t cx = _GetWidth()  / 2;
+    uint16_t cy = _GetHeight() / 2;
+
+    _FillScreen(0x0000);
+
+    start = micros();
+    for (i = 0; i < 360; i += 5) {
+        _DrawArc(cx, cy, 30, 2, 0, i, color);
+    }
+    unsigned long t = micros() - start;
+    SerialPrintf("    Arcs: %d uSec\r\n", t);
+}
+
+void testFilledCircles(uint8_t radius, uint16_t color) {
+    unsigned long start;
+    int x;
+    int y;
+    int w = _GetWidth();
+    int h = _GetHeight();
+    int r2 = radius * 2;
+
+    _FillScreen(0x0000);
+
+    start = micros();
+    for (x = radius; x < w; x += r2) {
+        for (y = radius; y < h; y += r2) {
+            _FillCircle(x, y, radius, color);
+        }
+    }
+
+    unsigned long t = micros() - start;
+    SerialPrintf("    Filled circles: %d uSec\r\n", t);
+}
+
+void testCircles(uint8_t radius, uint16_t color) {
+    unsigned long start;
+    int x;
+    int y;
+    int r2 = radius * 2;
+    int w = _GetWidth() + radius;
+    int h = _GetHeight() + radius;
+
+    // Screen is not cleared for this one -- this is
+    // intentional and does not affect the reported time.
+    start = micros();
+    for (x = 0; x < w; x += r2) {
+        for (y = 0; y < h; y += r2) {
+            _DrawCircle(x, y, radius, color);
+        }
+    }
+
+    unsigned long t = micros() - start;
+    SerialPrintf("    Circles: %d uSec\r\n", t);
+}
+
+void testTriangles() {
+    unsigned long start;
+    int n;
+    int i;
+    int cx = _GetWidth()  / 2 - 1;
+    int cy = (_GetHeight() / 2) - 1;
+
+    _FillScreen(0x0000);
+
+    n = min(cx, cy);
+    start = micros();
+    for (i = 0; i < n; i += 5) {
+        _DrawTriangle(
+            cx    , cy - i, // peak
+            cx - i, cy + i, // bottom left
+            cx + i, cy + i, // bottom right
+            _Color565(0, 0, i)
+        );
+    }
+
+    unsigned long t = micros() - start;
+    SerialPrintf("    Triangles: %d uSec\r\n", t);
+}
+
+void testFilledTriangles() {
+    unsigned long start;
+    unsigned long t = 0;
+    int i;
+    int cx = (_GetWidth() / 2) - 1;
+    int cy = _GetHeight() / 2 - 1;
+
+    _FillScreen(0x0000);
+
+    start = micros();
+    for (i = min(cx, cy); i > 10; i -= 5) {
+        start = micros();
+        _FillTriangle(
+            cx, 
+            cy - i, 
+            cx - i, 
+            cy + i, 
+            cx + i, 
+            cy + i,
+            _Color565(0, i, i)
+        );
+        t += micros() - start;
+        _DrawTriangle(
+            cx, 
+            cy - i, 
+            cx - i, 
+            cy + i, 
+            cx + i, 
+            cy + i,
+            _Color565(i, i, 0)
+        );
+    }
+
+    SerialPrintf("    Filled triangles: %d uSec\r\n", t);
+}
+
+void testRoundRects() {
+    unsigned long start;
+    int w;
+    int i;
+    int i2;
+    int cx = (_GetWidth()  / 2) - 1;
+    int cy = (_GetHeight() / 2) - 1;
+
+    _FillScreen(0x0000);
+
+    w = min(_GetWidth(), _GetHeight());
+    start = micros();
+    for (i = 0; i < w; i += 6) {
+        i2 = i / 2;
+        _DrawRoundRect(
+            cx - i2, 
+            cy - i2, 
+            i, 
+            i, 
+            i / 8, 
+            _Color565(i, 0, 0)
+        );
+    }
+
+    unsigned long t = micros() - start;
+    SerialPrintf("    Rounded rects: %d uSec\r\n", t);
+}
+
+void testFilledRoundRects() {
+    unsigned long start;
+    int i;
+    int i2;
+    int cx = (_GetWidth()  / 2) - 1;
+    int cy = (_GetHeight() / 2) - 1;
+
+    _FillScreen(0x0000);
+
+    start = micros();
+    for (i = min(_GetWidth(), _GetHeight()); i > 20; i -= 6) {
+        i2 = i / 2;
+        _FillRoundRect(
+            cx - i2, 
+            cy - i2, 
+            i, 
+            i, 
+            i / 8, 
+            _Color565(0, i, 0)
+        );
+    }
+
+    unsigned long t = micros() - start;
+    SerialPrintf("    Filled rounded rects: %d uSec\r\n", t);
+}
+
+/* #endregion */

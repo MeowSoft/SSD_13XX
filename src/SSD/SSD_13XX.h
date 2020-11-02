@@ -150,77 +150,52 @@ class SSD_13XX {
 	void		drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled);
 	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color);
 	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
-	void		drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	void		fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	void		drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
-	void		fillCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
-	void		drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
-	void		fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
-	void		drawQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color);
-	void		fillQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color,bool triangled=true);
-	void		drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t diameter, float rot, uint16_t color);
-	void		drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+	// void		drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
+	// void		fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
+	// void		drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
+	// void		fillCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
+	// void		drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
+	// void		fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
+	// void		drawQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color);
+	// void		fillQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color,bool triangled=true);
+	// void		drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t diameter, float rot, uint16_t color);
+	// void		drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 
-	void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color) {
-					if (start == 0 && end == _arcAngleMax) {
-						drawArcHelper(cx, cy, radius, thickness, 0, _arcAngleMax, color);
-					} else {
-						drawArcHelper(cx, cy, radius, thickness, start + (_arcAngleOffset / (float)360)*_arcAngleMax, end + (_arcAngleOffset / (float)360)*_arcAngleMax, color);
-					}
-				};
-	void 		drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t radiusH,uint16_t color);
-	void 		ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint8_t r=20, uint16_t colorScheme=4,uint16_t backSegColor=BLACK,int angle=150,uint8_t inc=5);
-	void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, uint16_t color,int offset = -90);
-	void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uint8_t length, uint16_t color,int offset = -90);
+	// void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color) {
+	// 				if (start == 0 && end == _arcAngleMax) {
+	// 					drawArcHelper(cx, cy, radius, thickness, 0, _arcAngleMax, color);
+	// 				} else {
+	// 					drawArcHelper(cx, cy, radius, thickness, start + (_arcAngleOffset / (float)360)*_arcAngleMax, end + (_arcAngleOffset / (float)360)*_arcAngleMax, color);
+	// 				}
+	// 			};
+	// void 		drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t radiusH,uint16_t color);
+	// void 		ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint8_t r=20, uint16_t colorScheme=4,uint16_t backSegColor=BLACK,int angle=150,uint8_t inc=5);
+	// void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, uint16_t color,int offset = -90);
+	// void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uint8_t length, uint16_t color,int offset = -90);
 	//------------------------------- BITMAP --------------------------------------------------
-	void		drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,int16_t w, int16_t h, uint16_t color);
-	void		drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w, int16_t h,uint16_t color, uint16_t bg);
-	void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE,uint16_t b=BLACK);
+	// void		drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,int16_t w, int16_t h, uint16_t color);
+	// void		drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w, int16_t h,uint16_t color, uint16_t bg);
+	// void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE,uint16_t b=BLACK);
 
 
 	//------------------------------- SCROLL ----------------------------------------------------
 	void 		defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint8_t e);
 	boolean		scroll(bool active);
-	//------------------------------- COLOR ----------------------------------------------------
-	// uint16_t 		gradient(uint8_t val);
-	// uint16_t 		colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div=100);
-	// uint16_t 		colorInterpolation(uint8_t r1,uint8_t g1,uint8_t b1,uint8_t r2,uint8_t g2,uint8_t b2,uint16_t pos,uint16_t div=100);
-	// inline uint16_t Color565(uint8_t r, uint8_t g, uint8_t b) {return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);};
-	// inline uint16_t Color24To565(int32_t color_) { return ((((color_ >> 16) & 0xFF) / 8) << 11) | ((((color_ >> 8) & 0xFF) / 4) << 5) | (((color_) &  0xFF) / 8);}
-	// inline uint16_t htmlTo565(int32_t color_) { return (uint16_t)(((color_ & 0xF80000) >> 8) | ((color_ & 0x00FC00) >> 5) | ((color_ & 0x0000F8) >> 3));}
-	// inline void 	Color565ToRGB(uint16_t color, uint8_t &r, uint8_t &g, uint8_t &b){r = (((color & 0xF800) >> 11) * 527 + 23) >> 6; g = (((color & 0x07E0) >> 5) * 259 + 33) >> 6; b = ((color & 0x001F) * 527 + 23) >> 6;}
-	//void 			printPacket(word data,uint8_t count);
 
 
  protected:
 	uint8_t 				_rst;
-	volatile int16_t		_width, _height; // , _cursorX, _cursorY;
-	// volatile bool			_filled;
+	volatile int16_t		_width, _height;
 	volatile uint8_t		_remapReg;
 
  private:
  
 	uint8_t					_colorDepth;
-	// int						_spaceCharWidth;
-	// const tFont   		*	_currentFont;
-	// uint8_t					_charSpacing;
-	// uint16_t 				_textForeground;
-	// uint16_t 				_textBackground;
-	// uint8_t					_textScaleX;
-	// uint8_t					_textScaleY;
-	// uint8_t					_centerText;
-	// uint8_t					_fontInterline;
-	// boolean 				_textWrap; // If set, 'wrap' text at right edge of display
-	// uint8_t					_fontRemapOffset;
-	/* fot remap offset will remap sections of char to other sections
-		0: no remap
-		1:minus to CAPITAL  if (c > 96 && c < 123) c -= 32;
-		2:CAPITAl to minus  if (c > 64 && c < 91)  c += 32;
-	*/
+
 	uint8_t					_initError;
 	uint8_t					_sleep;
-	float 					_arcAngleMax;
-	int 					_arcAngleOffset;
+	// float 					_arcAngleMax;
+	// int 					_arcAngleOffset;
 	uint8_t					_currentMode;
 
 	uint8_t					_rotation;
@@ -232,22 +207,21 @@ class SSD_13XX {
 /* ========================================================================
 					       Helpers
    ========================================================================*/
-	void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
-	void		drawCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,uint16_t color);
-	void		fillCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,int16_t delta, uint16_t color);
-	void 		drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color);
+	// void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
+	// void		drawCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,uint16_t color);
+	// void		fillCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,int16_t delta, uint16_t color);
+	// void 		drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color);
 	void 		fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
-	void 		fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	void 		setArcParams(float arcAngleMax, int arcAngleOffset);
-	// float 		cosDeg_helper(float angle);
-	// float 		sinDeg_helper(float angle);
+	// void 		fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
+	// void 		setArcParams(float arcAngleMax, int arcAngleOffset);
+
 	bool 		boundaryCheck(int16_t xw,int16_t yh);
-	// int16_t 	sizeCheck(int16_t origin,int16_t len,int16_t maxVal);
+
 	void 		setRegister_cont(const uint8_t cmd,uint8_t data);
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	void 		_fillUtility(bool filling);
 	int			_dlyHelper(int16_t w,int16_t h,int maxDly);
-	// void 		_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b);
+
 	void 		_sendColor_cont(uint8_t r,uint8_t g,uint8_t b);
 	void 		_sendColor_cont(uint16_t color);
 	void 		_sendLineData_cont(int16_t x0,int16_t y0,int16_t x1,int16_t y1);
@@ -260,38 +234,8 @@ class SSD_13XX {
 	void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
 
-
     friend class Text_Engine;
-	//LPGO
-	// int						_STRlen_helper(const char* buffer,int len);
-	// int						_getCharCode(uint8_t ch);
-	// void					_textWrite(const char* buffer, uint16_t len);
-	// bool					_renderSingleChar(const char c);
-	
-	// void					_glyphRender_unc(
-	// 										const _smCharType * charGlyp,
-	// 										int16_t 	x,
-	// 										int16_t 	y,
-	// 										int 		charW,
-	// 										int 		charH,
-	// 										uint8_t 	scaleX,
-	// 										uint8_t 	scaleY,
-	// 										uint16_t 	totalBytes,
-	// 										uint8_t 	cspacing,
-	// 										uint16_t 	foreColor,
-	// 										uint16_t 	backColor,
-	// 										bool	 	inverse
-	// 						);
-	// void					_charLineRender(
-	// 										bool 		lineBuffer[],
-	// 										int 		charW,
-	// 										int16_t 	x,
-	// 										int16_t 	y,
-	// 										uint8_t 	scaleX,
-	// 										uint8_t 	scaleY,
-	// 										int16_t 	currentYposition,
-	// 										uint16_t 	foreColor
-	// 						);
+    friend class Graphics_Engine;
 };
 
 #include "SSD_Core.ipp"

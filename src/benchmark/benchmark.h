@@ -1,7 +1,7 @@
 #ifndef BENCHMARK_H
 #define BENCHMARK_H
 
-#define USE_MINE
+//#define USE_MINE
 
 #ifdef USE_MINE
 #include "SSD/SSD_13XX.h"
@@ -13,6 +13,5 @@
 
 void benchmark_setup();
 void benchmark_run();
-void debugText();
 
 #endif
