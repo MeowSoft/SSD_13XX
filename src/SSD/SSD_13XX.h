@@ -80,7 +80,7 @@ Icon Render              1754
 #include "wiring_private.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "Print.h"
+// #include "Print.h"
 #include <SPI.h>
 
 #include "_includes/_cpuCommons.h"
@@ -88,15 +88,9 @@ Icon Render              1754
 #include "_settings/SSD_13XX_settings.h"
 
 //Load sumotoy universal descriptors (used in many other libraries)
-#include "_includes/sumotoy_fontDescription.h"
+// #include "_includes/sumotoy_fontDescription.h"
 #include "_includes/sumotoy_imageDescription.h"
 #include "_includes/sumotoy_iconDescription.h"
-
-#if defined(_SSD_DEF_FONT_PATH)
-	#include _SSD_DEF_FONT_PATH
-#else
-	//#include "_fonts/nullfont.c"
-#endif
 
 #if !defined(swapVals)
 	#if defined(ESP8266)
@@ -106,17 +100,13 @@ Icon Render              1754
 	#endif
 #endif
 
-#if !defined(CENTER)
-#define CENTER 				9998
-#endif
 
 
 enum SSD_13XX_modes{NORMAL=0,PWRSAVE,INVERT,DISP_ON, DISP_DIM,DISP_OFF,PROTECT,ALL_ON,ALL_OFF};
 enum SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
-enum SSD_13XX_centerMode{NORM=0,SCREEN,REL_X,REL_Y,REL_XY};
 
 #ifdef __cplusplus
-class SSD_13XX : public Print {
+class SSD_13XX {
 
  public:
 	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
@@ -185,61 +175,43 @@ class SSD_13XX : public Print {
 	//------------------------------- BITMAP --------------------------------------------------
 	void		drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,int16_t w, int16_t h, uint16_t color);
 	void		drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w, int16_t h,uint16_t color, uint16_t bg);
-	void		pushColor(uint16_t color);
-	void 		startPushData(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
-	void 		pushData(uint16_t color);
-	void 		endPushData();
 	void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE,uint16_t b=BLACK);
-	void 		drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale=1,uint16_t f=WHITE,uint16_t b=BLACK,bool inverse=false);
-	//------------------------------- TEXT ----------------------------------------------------
-    void		setTextColor(uint16_t color);
-    void		setTextColor(uint16_t frgrnd, uint16_t bckgnd);
-	void		setTextScale(uint8_t s);
-	void 		setTextScale(uint8_t sx,uint8_t sy);
-    void		setTextWrap(boolean w);
-	void		setCharSpacing(uint8_t space);
-	void 		setFontInterline(uint8_t distance);
-	void		setInternalFont(void);
-	void 		setFont(const tFont *font);
-	virtual size_t 	write(uint8_t b) { _textWrite((const char *)&b, 1); return 1;}
-	virtual size_t  write(const uint8_t *buffer, size_t size) {_textWrite((const char *)buffer, size); return size;}
-    //------------------------------- CURSOR ----------------------------------------------------
-	void		setCursor(int16_t x,int16_t y,enum SSD_13XX_centerMode c=NORM);
-	void		getCursor(int16_t &x,int16_t &y);
+
+
 	//------------------------------- SCROLL ----------------------------------------------------
 	void 		defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint8_t e);
 	boolean		scroll(bool active);
 	//------------------------------- COLOR ----------------------------------------------------
-	uint16_t 		gradient(uint8_t val);
-	uint16_t 		colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div=100);
-	uint16_t 		colorInterpolation(uint8_t r1,uint8_t g1,uint8_t b1,uint8_t r2,uint8_t g2,uint8_t b2,uint16_t pos,uint16_t div=100);
-	inline uint16_t Color565(uint8_t r, uint8_t g, uint8_t b) {return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);};
-	inline uint16_t Color24To565(int32_t color_) { return ((((color_ >> 16) & 0xFF) / 8) << 11) | ((((color_ >> 8) & 0xFF) / 4) << 5) | (((color_) &  0xFF) / 8);}
-	inline uint16_t htmlTo565(int32_t color_) { return (uint16_t)(((color_ & 0xF80000) >> 8) | ((color_ & 0x00FC00) >> 5) | ((color_ & 0x0000F8) >> 3));}
-	inline void 	Color565ToRGB(uint16_t color, uint8_t &r, uint8_t &g, uint8_t &b){r = (((color & 0xF800) >> 11) * 527 + 23) >> 6; g = (((color & 0x07E0) >> 5) * 259 + 33) >> 6; b = ((color & 0x001F) * 527 + 23) >> 6;}
+	// uint16_t 		gradient(uint8_t val);
+	// uint16_t 		colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div=100);
+	// uint16_t 		colorInterpolation(uint8_t r1,uint8_t g1,uint8_t b1,uint8_t r2,uint8_t g2,uint8_t b2,uint16_t pos,uint16_t div=100);
+	// inline uint16_t Color565(uint8_t r, uint8_t g, uint8_t b) {return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);};
+	// inline uint16_t Color24To565(int32_t color_) { return ((((color_ >> 16) & 0xFF) / 8) << 11) | ((((color_ >> 8) & 0xFF) / 4) << 5) | (((color_) &  0xFF) / 8);}
+	// inline uint16_t htmlTo565(int32_t color_) { return (uint16_t)(((color_ & 0xF80000) >> 8) | ((color_ & 0x00FC00) >> 5) | ((color_ & 0x0000F8) >> 3));}
+	// inline void 	Color565ToRGB(uint16_t color, uint8_t &r, uint8_t &g, uint8_t &b){r = (((color & 0xF800) >> 11) * 527 + 23) >> 6; g = (((color & 0x07E0) >> 5) * 259 + 33) >> 6; b = ((color & 0x001F) * 527 + 23) >> 6;}
 	//void 			printPacket(word data,uint8_t count);
 
 
  protected:
 	uint8_t 				_rst;
-	volatile int16_t		_width, _height, _cursorX, _cursorY;
-	volatile bool			_filled;
+	volatile int16_t		_width, _height; // , _cursorX, _cursorY;
+	// volatile bool			_filled;
 	volatile uint8_t		_remapReg;
 
  private:
  
 	uint8_t					_colorDepth;
-	int						_spaceCharWidth;
-	const tFont   		*	_currentFont;
-	uint8_t					_charSpacing;
-	uint16_t 				_textForeground;
-	uint16_t 				_textBackground;
-	uint8_t					_textScaleX;
-	uint8_t					_textScaleY;
-	uint8_t					_centerText;
-	uint8_t					_fontInterline;
-	boolean 				_textWrap; // If set, 'wrap' text at right edge of display
-	uint8_t					_fontRemapOffset;
+	// int						_spaceCharWidth;
+	// const tFont   		*	_currentFont;
+	// uint8_t					_charSpacing;
+	// uint16_t 				_textForeground;
+	// uint16_t 				_textBackground;
+	// uint8_t					_textScaleX;
+	// uint8_t					_textScaleY;
+	// uint8_t					_centerText;
+	// uint8_t					_fontInterline;
+	// boolean 				_textWrap; // If set, 'wrap' text at right edge of display
+	// uint8_t					_fontRemapOffset;
 	/* fot remap offset will remap sections of char to other sections
 		0: no remap
 		1:minus to CAPITAL  if (c > 96 && c < 123) c -= 32;
@@ -267,15 +239,15 @@ class SSD_13XX : public Print {
 	void 		fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
 	void 		fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
 	void 		setArcParams(float arcAngleMax, int arcAngleOffset);
-	float 		cosDeg_helper(float angle);
-	float 		sinDeg_helper(float angle);
+	// float 		cosDeg_helper(float angle);
+	// float 		sinDeg_helper(float angle);
 	bool 		boundaryCheck(int16_t xw,int16_t yh);
-	int16_t 	sizeCheck(int16_t origin,int16_t len,int16_t maxVal);
+	// int16_t 	sizeCheck(int16_t origin,int16_t len,int16_t maxVal);
 	void 		setRegister_cont(const uint8_t cmd,uint8_t data);
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 	void 		_fillUtility(bool filling);
 	int			_dlyHelper(int16_t w,int16_t h,int maxDly);
-	void 		_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b);
+	// void 		_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b);
 	void 		_sendColor_cont(uint8_t r,uint8_t g,uint8_t b);
 	void 		_sendColor_cont(uint16_t color);
 	void 		_sendLineData_cont(int16_t x0,int16_t y0,int16_t x1,int16_t y1);
@@ -288,36 +260,41 @@ class SSD_13XX : public Print {
 	void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
 
+
+    friend class Text_Engine;
 	//LPGO
-	int						_STRlen_helper(const char* buffer,int len);
-	int						_getCharCode(uint8_t ch);
-	void					_textWrite(const char* buffer, uint16_t len);
-	bool					_renderSingleChar(const char c);
+	// int						_STRlen_helper(const char* buffer,int len);
+	// int						_getCharCode(uint8_t ch);
+	// void					_textWrite(const char* buffer, uint16_t len);
+	// bool					_renderSingleChar(const char c);
 	
-	void					_glyphRender_unc(
-											const _smCharType * charGlyp,
-											int16_t 	x,
-											int16_t 	y,
-											int 		charW,
-											int 		charH,
-											uint8_t 	scaleX,
-											uint8_t 	scaleY,
-											uint16_t 	totalBytes,
-											uint8_t 	cspacing,
-											uint16_t 	foreColor,
-											uint16_t 	backColor,
-											bool	 	inverse
-							);
-	void					_charLineRender(
-											bool 		lineBuffer[],
-											int 		charW,
-											int16_t 	x,
-											int16_t 	y,
-											uint8_t 	scaleX,
-											uint8_t 	scaleY,
-											int16_t 	currentYposition,
-											uint16_t 	foreColor
-							);
+	// void					_glyphRender_unc(
+	// 										const _smCharType * charGlyp,
+	// 										int16_t 	x,
+	// 										int16_t 	y,
+	// 										int 		charW,
+	// 										int 		charH,
+	// 										uint8_t 	scaleX,
+	// 										uint8_t 	scaleY,
+	// 										uint16_t 	totalBytes,
+	// 										uint8_t 	cspacing,
+	// 										uint16_t 	foreColor,
+	// 										uint16_t 	backColor,
+	// 										bool	 	inverse
+	// 						);
+	// void					_charLineRender(
+	// 										bool 		lineBuffer[],
+	// 										int 		charW,
+	// 										int16_t 	x,
+	// 										int16_t 	y,
+	// 										uint8_t 	scaleX,
+	// 										uint8_t 	scaleY,
+	// 										int16_t 	currentYposition,
+	// 										uint16_t 	foreColor
+	// 						);
 };
+
+#include "SSD_Core.ipp"
+
 #endif
 #endif

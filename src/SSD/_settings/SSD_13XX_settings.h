@@ -53,7 +53,7 @@ Default: (defaultFont = arial_2x)
 #define _SSD_DEF_FONT_PATH			"_fonts/defaultFont.c"
 #define _SSD_DEF_FONT_NAME			defaultFont
 ----------------------------------------------------------------------------------*/
-	//#define _SSD_DEF_FONT_PATH			"_fonts/defaultFont.c"
+	#define _SSD_DEF_FONT_PATH			"_fonts/defaultFont.c"
 	#define _SSD_DEF_FONT_NAME			defaultFont
 /*--------------------------------------------------------------------------------
 - Default Display Rotation -

@@ -13,5 +13,6 @@
 
 void benchmark_setup();
 void benchmark_run();
+void debugText();
 
 #endif

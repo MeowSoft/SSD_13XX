@@ -17,7 +17,244 @@
 ===========================================================================================*/
 
 #include "SSD_13XX.h"
-#include "Spi/SpiMethods.h"
+
+#include "Spi/Spi_Instance.h"
+
+#include "SSD_Util.h"
+
+
+/* #region Transaction methods: */
+
+void SSD_13XX::setArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
+{
+	startTransaction();
+	setAddrWindow_cont(x0,y0,x1,y1,true);
+	closeTransaction();
+}
+
+void SSD_13XX::drawPixel(int16_t x, int16_t y, uint16_t color)
+{
+	//if (boundaryCheck(x,y)) return;
+	//if ((x < 0) || (y < 0)) return;
+	startTransaction();
+	drawPixel_cont(x,y,color);
+	closeTransaction();
+}
+
+/*
+draw fast vertical line
+this uses fast contiguos commands method but opens SPi transaction and enable CS
+then set CS hi and close transaction
+*/
+void SSD_13XX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
+{
+	/*
+	if (boundaryCheck(x,y)) return;
+	if (((y + h) - 1) >= _height) h = _height - y;
+	h = sizeCheck(y,h,_height);
+	*/
+	if (x >= _width-1) return;
+	if (y >= _height-1) return;
+	startTransaction();
+	drawFastVLine_cont(x,y,h,color);
+	closeTransaction();
+}
+
+
+/*
+draw fast horizontal line
+this uses fast contiguos commands method but opens SPi transaction and enable CS
+then set CS hi and close transaction
+*/
+void SSD_13XX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
+{
+	/*
+	if (boundaryCheck(x,y)) return;
+	if (((x + w) - 1) >= _width)  w = _width - x;
+	w = sizeCheck(x,w,_width);
+	*/
+	if (x >= _width-1) return;
+	if (y >= _height-1) return;
+	startTransaction();
+	drawFastHLine_cont(x,y,w,color);
+	closeTransaction();
+}
+
+/*
+fill RECT
+*/
+//+++++++++OK
+void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+{
+	startTransaction();
+	drawRect_cont(x, y, w, h, color,color,true);
+	closeTransaction();
+}
+
+/*
+fill RECT with gradient
+*/
+void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2)
+{
+	if (boundaryCheck(x,y)) return;
+	startTransaction();
+	fillRect_cont(x,y,w,h,color1,color2);
+	closeTransaction();
+}
+
+
+/*
+draw LINE
+*/
+void SSD_13XX::drawLine(int16_t x0, int16_t y0,int16_t x1, int16_t y1, uint16_t color)
+{
+	if (x1 >= _width) x1 = _width-1;
+	if (y1 >= _height) y1 = _height-1;
+	startTransaction();
+	drawLine_cont(x0,y0,x1,y1,color/*,200*/);
+	closeTransaction();
+}
+
+/*
+draw rect
+*/
+
+//+++++++++OK
+void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+{
+	drawRect(x,y,w,h,color,color,false);
+}
+
+//+++++++++OK
+void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled)
+{
+	if (x + w >= _width) return;
+	if (y + h >= _height) return;
+	startTransaction();
+	drawRect_cont(x, y, w, h, color1,color2,filled);
+	closeTransaction();
+}
+
+
+/* #endregion */
+
+/* #region Static methods: */ 
+
+// 	int16_t SSD_13XX::sizeCheck(int16_t origin,int16_t len,int16_t maxVal)
+// 	{
+// 		if (((origin + len) - 1) >= maxVal) len = maxVal - origin;
+// 		return len;
+// 	}
+
+// 	void SSD_13XX::_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b)
+// 	{
+// 		r = (uint8_t)((color >> 11) << 1);
+// 		g =	(uint8_t)((color >> 5) & 0x3F);
+// 		b = (uint8_t)((color << 1) & 0x3F);
+// 	}
+		
+// /**************************************************************************/
+// /*!
+// 	  calculate a gradient color
+// 	  return a spectrum starting from blue to red (0...127)
+// 	  From my RA8875 library
+// */
+// /**************************************************************************/
+// //+++++++++OK
+// uint16_t SSD_13XX::gradient(uint8_t val)
+// {
+// 	uint8_t r = 0;
+// 	uint8_t g = 0;
+// 	uint8_t b = 0;
+// 	uint8_t q = val / 32;
+// 	switch(q){
+// 		case 0: r = 0; g = 2 * (val % 32); b = 31; break;
+// 		case 1: r = 0; g = 63; b = 31 - (val % 32); break;
+// 		case 2: r = val % 32; g = 63; b = 0; break;
+// 		case 3: r = 31; g = 63 - 2 * (val % 32); b = 0; break;
+// 	}
+// 	return (r << 11) + (g << 5) + b;
+// }
+// /**************************************************************************/
+// /*!
+// 	  interpolate 2 r,g,b colors
+// 	  return a 16bit mixed color between the two
+// 	  Parameters:
+// 	  r1.
+// 	  g1:
+// 	  b1:
+// 	  r2:
+// 	  g2:
+// 	  b2:
+// 	  pos:0...div (mix percentage) (0:color1, div:color2)
+// 	  div:divisions between color1 and color 2
+// 	  From my RA8875 library
+// 	  NOTE: Needs a remake, it's slow! (TODO)
+// */
+// /**************************************************************************/
+// //+++++++++OK
+// uint16_t SSD_13XX::colorInterpolation(uint8_t r1,uint8_t g1,uint8_t b1,uint8_t r2,uint8_t g2,uint8_t b2,uint16_t pos,uint16_t div)
+// {
+//     if (pos == 0) return Color565(r1,g1,b1);
+//     if (pos >= div) return Color565(r2,g2,b2);
+// 	float pos2 = (float)pos/div;
+// 	return Color565(
+// 				(uint8_t)(((1.0 - pos2) * r1) + (pos2 * r2)),
+// 				(uint8_t)(((1.0 - pos2) * g1) + (pos2 * g2)),
+// 				(uint8_t)(((1.0 - pos2) * b1) + (pos2 * b2))
+// 	);
+// }
+
+// /**************************************************************************/
+// /*!
+// 	  interpolate 2 16bit colors
+// 	  return a 16bit mixed color between the two
+// 	  Parameters:
+// 	  color1:
+// 	  color2:
+// 	  pos:0...div (mix percentage) (0:color1, div:color2)
+// 	  div:divisions between color1 and color 2
+// 	  From my RA8875 library
+// 	  NOTE: Needs a remake, it's slow! (TODO)
+// */
+// /**************************************************************************/
+// //+++++++++OK
+// uint16_t SSD_13XX::colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div)
+// {
+//     if (pos == 0) return color1;
+//     if (pos >= div) return color2;
+// 	uint8_t r1,g1,b1;
+// 	Color565ToRGB(color1,r1,g1,b1);//split in r,g,b
+// 	uint8_t r2,g2,b2;
+// 	Color565ToRGB(color2,r2,g2,b2);//split in r,g,b
+// 	return colorInterpolation(r1,g1,b1,r2,g2,b2,pos,div);
+// }
+
+
+// /**************************************************************************/
+// /*!
+// 		sin e cos helpers
+// 		[private]
+// 		from my RA8875 library
+// */
+// /**************************************************************************/
+// float SSD_13XX::cosDeg_helper(float angle)
+// {
+// 	float rads = angle / (float)360 * 2 * PI;
+// 	return cos(rads);
+// }
+
+
+// float SSD_13XX::sinDeg_helper(float angle)
+// {
+// 	float rads = angle / (float)360 * 2 * PI;
+// 	return sin(rads);
+// }
+
+
+/* #endregion */
+
+
 
 /*********************************************************
 ********************** constructors **********************
@@ -56,19 +293,19 @@ void SSD_13XX::begin(bool avoidSPIinit)
 	_remapReg		= 0;
 	_currentMode	= 0b00000000;
 	_portrait 		= false;
-	_filled 		= 0;//set like this to force it change
+	// _filled 		= 0;//set like this to force it change
 	_initError 		= 0b00000000;
-	_cursorY  		= _cursorX 		= 0;
-	_textScaleX 	= _textScaleY 	= 1;
-	_centerText 	= false;
-	_fontInterline 	= 0;
-	_charSpacing 	= 0;
-	_textWrap      	= true;
+	// _cursorY  		= _cursorX 		= 0;
+	// _textScaleX 	= _textScaleY 	= 1;
+	// _centerText 	= false;
+	// _fontInterline 	= 0;
+	// _charSpacing 	= 0;
+	// _textWrap      	= true;
 	setColorDepth(SSD_COLORDEPTH);
 	setColorOrder(SSD_RGBORDER);
 	_defaultBgColor = _SSD_DEF_BACKGROUND;
 	_defaultFgColor = _SSD_DEF_FOREGROUND;
-	_textForeground = _textBackground = _defaultFgColor;//text transparent
+	// _textForeground = _textBackground = _defaultFgColor;//text transparent
 	_arcAngleMax 	= 360;
 	_arcAngleOffset = -90;
 
@@ -177,7 +414,7 @@ void SSD_13XX::begin(bool avoidSPIinit)
 	fillScreen(_defaultBgColor);
 	//Now set Font
 	#if defined(_SSD_DEF_FONT_PATH)
-		setFont(&_SSD_DEF_FONT_NAME);
+		//setFont(&_SSD_DEF_FONT_NAME);
 	#else
 		//setFont(&nullfont);
 	#endif
@@ -193,6 +430,21 @@ void SSD_13XX::setRegister_cont(const uint8_t cmd,uint8_t data)
 	#else
 		writedata8_cont(data);
 	#endif
+}
+
+
+void SSD_13XX::setBrightness(uint8_t brightness)
+{
+	
+	if (brightness > 15) brightness = 15;
+	startTransaction();
+		writecommand_cont(CMD_MASTERCURRENT);
+		#if defined(_SSD_USECMDASDATA)
+			writecommand_last(brightness);
+		#else
+			writedata8_last(brightness);
+		#endif
+	endTransaction();
 }
 
 /*********************************************************
@@ -321,28 +573,6 @@ void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
 uint8_t SSD_13XX::getMode(void)
 {
 	return _currentMode;
-}
-
-
-void SSD_13XX::setBrightness(uint8_t brightness)
-{
-	
-	if (brightness > 15) brightness = 15;
-	startTransaction();
-		writecommand_cont(CMD_MASTERCURRENT);
-		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-			writecommand_last(brightness);
-		#else
-			writedata8_last(brightness);
-		#endif
-	endTransaction();
-}
-
-void SSD_13XX::setArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
-{
-	startTransaction();
-	setAddrWindow_cont(x0,y0,x1,y1,true);
-	closeTransaction();
 }
 
 
@@ -488,7 +718,7 @@ void SSD_13XX::setRotation(uint8_t m)
 			//TODO
 		#endif
 	}
-	_cursorX = 0; _cursorY = 0;//always reset cursor
+	//_cursorX = 0; _cursorY = 0;//always reset cursor
 	startTransaction();
 		setAddrWindow_cont(0,0,_height-1,_width-1,false);
 		writecommand_cont(CMD_SETREMAP);//set remap
@@ -594,83 +824,6 @@ boolean SSD_13XX::scroll(bool active)
 ******************** Color Functions *********************
 **********************************************************/
 
-/**************************************************************************/
-/*!
-	  calculate a gradient color
-	  return a spectrum starting from blue to red (0...127)
-	  From my RA8875 library
-*/
-/**************************************************************************/
-//+++++++++OK
-uint16_t SSD_13XX::gradient(uint8_t val)
-{
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t q = val / 32;
-	switch(q){
-		case 0: r = 0; g = 2 * (val % 32); b = 31; break;
-		case 1: r = 0; g = 63; b = 31 - (val % 32); break;
-		case 2: r = val % 32; g = 63; b = 0; break;
-		case 3: r = 31; g = 63 - 2 * (val % 32); b = 0; break;
-	}
-	return (r << 11) + (g << 5) + b;
-}
-
-/**************************************************************************/
-/*!
-	  interpolate 2 16bit colors
-	  return a 16bit mixed color between the two
-	  Parameters:
-	  color1:
-	  color2:
-	  pos:0...div (mix percentage) (0:color1, div:color2)
-	  div:divisions between color1 and color 2
-	  From my RA8875 library
-	  NOTE: Needs a remake, it's slow! (TODO)
-*/
-/**************************************************************************/
-//+++++++++OK
-uint16_t SSD_13XX::colorInterpolation(uint16_t color1,uint16_t color2,uint16_t pos,uint16_t div)
-{
-    if (pos == 0) return color1;
-    if (pos >= div) return color2;
-	uint8_t r1,g1,b1;
-	Color565ToRGB(color1,r1,g1,b1);//split in r,g,b
-	uint8_t r2,g2,b2;
-	Color565ToRGB(color2,r2,g2,b2);//split in r,g,b
-	return colorInterpolation(r1,g1,b1,r2,g2,b2,pos,div);
-}
-
-/**************************************************************************/
-/*!
-	  interpolate 2 r,g,b colors
-	  return a 16bit mixed color between the two
-	  Parameters:
-	  r1.
-	  g1:
-	  b1:
-	  r2:
-	  g2:
-	  b2:
-	  pos:0...div (mix percentage) (0:color1, div:color2)
-	  div:divisions between color1 and color 2
-	  From my RA8875 library
-	  NOTE: Needs a remake, it's slow! (TODO)
-*/
-/**************************************************************************/
-//+++++++++OK
-uint16_t SSD_13XX::colorInterpolation(uint8_t r1,uint8_t g1,uint8_t b1,uint8_t r2,uint8_t g2,uint8_t b2,uint16_t pos,uint16_t div)
-{
-    if (pos == 0) return Color565(r1,g1,b1);
-    if (pos >= div) return Color565(r2,g2,b2);
-	float pos2 = (float)pos/div;
-	return Color565(
-				(uint8_t)(((1.0 - pos2) * r1) + (pos2 * r2)),
-				(uint8_t)(((1.0 - pos2) * g1) + (pos2 * g2)),
-				(uint8_t)(((1.0 - pos2) * b1) + (pos2 * b2))
-	);
-}
 
 //+++++++++OK
 void SSD_13XX::setBackground(uint16_t color)
@@ -700,14 +853,6 @@ uint16_t SSD_13XX::getForeground(void)
 ****************** Graphic Functions *********************
 **********************************************************/
 //+++++++++OK
-void SSD_13XX::drawPixel(int16_t x, int16_t y, uint16_t color)
-{
-	//if (boundaryCheck(x,y)) return;
-	//if ((x < 0) || (y < 0)) return;
-	startTransaction();
-	drawPixel_cont(x,y,color);
-	closeTransaction();
-}
 
 
 //+++++++++OK
@@ -715,7 +860,7 @@ void SSD_13XX::fillScreen(uint16_t color)
 {
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 		uint8_t r1,g1,b1;
-		_convertColor(color,r1,g1,b1);
+		SSD_Util::_convertColor(color,r1,g1,b1);
 		startTransaction();
 		_fillUtility(1);
 		writecommand_cont(CMD_DRAWRECT);
@@ -751,7 +896,7 @@ void SSD_13XX::fillScreen(uint16_t color1,uint16_t color2)
 		fillRect_cont(0,0,SSD_WIDTH,SSD_HEIGHT,color1,color2);
 	} else {
 		uint8_t r1,g1,b1;
-		_convertColor(color1,r1,g1,b1);
+		SSD_Util::_convertColor(color1,r1,g1,b1);
 		_fillUtility(1);
 		writecommand_cont(CMD_DRAWRECT);
 		writecommand16_cont(0);
@@ -782,141 +927,48 @@ void SSD_13XX::fillScreen(uint16_t color1,uint16_t color2)
 void SSD_13XX::clearScreen(void)
 {
 	fillScreen(_defaultBgColor);
-	_cursorX = _cursorY = 0;
+	//_cursorX = _cursorY = 0;
 }
 
-/*
-draw fast vertical line
-this uses fast contiguos commands method but opens SPi transaction and enable CS
-then set CS hi and close transaction
-*/
-void SSD_13XX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
-{
-	/*
-	if (boundaryCheck(x,y)) return;
-	if (((y + h) - 1) >= _height) h = _height - y;
-	h = sizeCheck(y,h,_height);
-	*/
-	if (x >= _width-1) return;
-	if (y >= _height-1) return;
-	startTransaction();
-	drawFastVLine_cont(x,y,h,color);
-	closeTransaction();
-}
-
-
-/*
-draw fast horizontal line
-this uses fast contiguos commands method but opens SPi transaction and enable CS
-then set CS hi and close transaction
-*/
-void SSD_13XX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
-{
-	/*
-	if (boundaryCheck(x,y)) return;
-	if (((x + w) - 1) >= _width)  w = _width - x;
-	w = sizeCheck(x,w,_width);
-	*/
-	if (x >= _width-1) return;
-	if (y >= _height-1) return;
-	startTransaction();
-	drawFastHLine_cont(x,y,w,color);
-	closeTransaction();
-}
-
-
-/*
-fill RECT
-*/
-//+++++++++OK
-void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
-{
-	startTransaction();
-	drawRect_cont(x, y, w, h, color,color,true);
-	closeTransaction();
-}
-
-/*
-fill RECT with gradient
-*/
-void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2)
-{
-	if (boundaryCheck(x,y)) return;
-	startTransaction();
-	fillRect_cont(x,y,w,h,color1,color2);
-	closeTransaction();
-}
 
 
 //Updated, new way is fast!!!
-void SSD_13XX::fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2)
-{
-	//uint16_t colorTemp;
-	if (w < 2 && h < 2){ drawPixel_cont(x,y,color1); return; }
-	if (h < 2) { drawFastHLine_cont(x,y,w,color1); return; }
-	if (w < 2) { drawFastVLine_cont(x,y,h,color1); return; }
-	setAddrWindow_cont(x,y,(x+w)-1,(y+h)-1,true);
-	if (color1 != color2){
-		uint16_t pos = 0;
-		uint8_t r1,r2,g1,g2,b1,b2;
-		Color565ToRGB(color1,r1,g1,b1);
-		Color565ToRGB(color2,r2,g2,b2);
-		float pos2;
-		uint8_t rR,gG,bB;
-		uint16_t tot = h;
-		uint16_t wtemp = w;
-		do {
-			pos2 = (float)pos/tot;
-			rR = (((1.0 - pos2) * r1) + (pos2 * r2));
-			gG = (((1.0 - pos2) * g1) + (pos2 * g2));
-			bB = (((1.0 - pos2) * b1) + (pos2 * b2));
-			#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-				do {
-					writedata16_cont(Color565(rR,gG,bB));
-				} while (--wtemp > 0);
-				wtemp = w;
-			#else
-				_pushColors_cont(Color565(rR,gG,bB),wtemp);
-			#endif
-			pos++;
-		} while (--h > 0);
-	} else {
-		_pushColors_cont(color1,w*h);
-	}
-}
+// void SSD_13XX::fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2)
+// {
+// 	//uint16_t colorTemp;
+// 	if (w < 2 && h < 2){ drawPixel_cont(x,y,color1); return; }
+// 	if (h < 2) { drawFastHLine_cont(x,y,w,color1); return; }
+// 	if (w < 2) { drawFastVLine_cont(x,y,h,color1); return; }
+// 	setAddrWindow_cont(x,y,(x+w)-1,(y+h)-1,true);
+// 	if (color1 != color2){
+// 		uint16_t pos = 0;
+// 		uint8_t r1,r2,g1,g2,b1,b2;
+// 		Color565ToRGB(color1,r1,g1,b1);
+// 		Color565ToRGB(color2,r2,g2,b2);
+// 		float pos2;
+// 		uint8_t rR,gG,bB;
+// 		uint16_t tot = h;
+// 		uint16_t wtemp = w;
+// 		do {
+// 			pos2 = (float)pos/tot;
+// 			rR = (((1.0 - pos2) * r1) + (pos2 * r2));
+// 			gG = (((1.0 - pos2) * g1) + (pos2 * g2));
+// 			bB = (((1.0 - pos2) * b1) + (pos2 * b2));
+// 			#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
+// 				do {
+// 					writedata16_cont(Color565(rR,gG,bB));
+// 				} while (--wtemp > 0);
+// 				wtemp = w;
+// 			#else
+// 				_pushColors_cont(Color565(rR,gG,bB),wtemp);
+// 			#endif
+// 			pos++;
+// 		} while (--h > 0);
+// 	} else {
+// 		_pushColors_cont(color1,w*h);
+// 	}
+// }
 
-
-/*
-draw LINE
-*/
-void SSD_13XX::drawLine(int16_t x0, int16_t y0,int16_t x1, int16_t y1, uint16_t color)
-{
-	if (x1 >= _width) x1 = _width-1;
-	if (y1 >= _height) y1 = _height-1;
-	startTransaction();
-	drawLine_cont(x0,y0,x1,y1,color/*,200*/);
-	closeTransaction();
-}
-
-/*
-draw rect
-*/
-
-//+++++++++OK
-void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
-{
-	drawRect(x,y,w,h,color,color,false);
-}
-
-//+++++++++OK
-void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled)
-{
-	if (x + w >= _width) return;
-	if (y + h >= _height) return;
-	startTransaction();
-	drawRect_cont(x, y, w, h, color1,color2,filled);
-	closeTransaction();
-}
 
 
 void SSD_13XX::drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color)
@@ -949,10 +1001,10 @@ void SSD_13XX::drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int16_t thi
 		drawArcHelper(cx, cy, radius, thickness, 0, ((endAngle / 360.0) * _arcAngleMax), color);
 	} else {
 		// Calculate bounding box for the arc to be drawn
-		cosStart = cosDeg_helper(startAngle);
-		sinStart = sinDeg_helper(startAngle);
-		cosEnd = cosDeg_helper(endAngle);
-		sinEnd = sinDeg_helper(endAngle);
+		cosStart = SSD_Util::cosDeg_helper(startAngle);
+		sinStart = SSD_Util::sinDeg_helper(startAngle);
+		cosEnd = SSD_Util::cosDeg_helper(endAngle);
+		sinEnd = SSD_Util::sinDeg_helper(endAngle);
 
 		r = radius;
 		// Point 1: radius & startAngle
@@ -1085,26 +1137,6 @@ void SSD_13XX::setArcParams(float arcAngleMax, int arcAngleOffset)
 }
 
 
-
-/**************************************************************************/
-/*!
-		sin e cos helpers
-		[private]
-		from my RA8875 library
-*/
-/**************************************************************************/
-float SSD_13XX::cosDeg_helper(float angle)
-{
-	float rads = angle / (float)360 * 2 * PI;
-	return cos(rads);
-}
-
-
-float SSD_13XX::sinDeg_helper(float angle)
-{
-	float rads = angle / (float)360 * 2 * PI;
-	return sin(rads);
-}
 
 
 //fast
@@ -1396,8 +1428,8 @@ void SSD_13XX::drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col
 	if (boundaryCheck(x,y)) return;
 	//if (((x + w) - 1) >= _width)  w = _width  - x;
 	//if (((y + h) - 1) >= _height) h = _height - y;
-	w = sizeCheck(x,w,_width);
-	h = sizeCheck(y,h,_height);
+	w = SSD_Util::sizeCheck(x,w,_width);
+	h = SSD_Util::sizeCheck(y,h,_height);
 
 	int16_t n, m;
 
@@ -1514,8 +1546,8 @@ void SSD_13XX::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, ui
 		drawLine(
 		x,
 		y,
-		x + (length * cosDeg_helper(angle + offset)),//_angle_offset
-		y + (length * sinDeg_helper(angle + offset)),
+		x + (length * SSD_Util::cosDeg_helper(angle + offset)),//_angle_offset
+		y + (length * SSD_Util::sinDeg_helper(angle + offset)),
 		color);
 	}
 }
@@ -1539,10 +1571,10 @@ void SSD_13XX::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uin
 		drawPixel(x,y,color);
 	} else {
 		drawLine(
-		x + start * cosDeg_helper(angle + offset),//_angle_offset
-		y + start * sinDeg_helper(angle + offset),
-		x + (start + length) * cosDeg_helper(angle + offset),
-		y + (start + length) * sinDeg_helper(angle + offset),
+		x + start * SSD_Util::cosDeg_helper(angle + offset),//_angle_offset
+		y + start * SSD_Util::sinDeg_helper(angle + offset),
+		x + (start + length) * SSD_Util::cosDeg_helper(angle + offset),
+		y + (start + length) * SSD_Util::sinDeg_helper(angle + offset),
 		color);
 	}
 }
@@ -1609,25 +1641,25 @@ void SSD_13XX::ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint
 				colour = BLUE;
 				break; // Fixed colour
 			case 3:
-				colour = gradient(map(i, -angle, angle, 0, 127));
+				colour = SSD_Util::gradient(map(i, -angle, angle, 0, 127));
 				break; // Full spectrum blue to red
 			case 4:
-				colour = gradient(map(i, -angle, angle, 63, 127));
+				colour = SSD_Util::gradient(map(i, -angle, angle, 63, 127));
 				break; // Green to red (high temperature etc)
 			case 5:
-				colour = gradient(map(i, -angle, angle, 127, 63));
+				colour = SSD_Util::gradient(map(i, -angle, angle, 127, 63));
 				break; // Red to green (low battery etc)
 			case 6:
-				colour = gradient(map(i, -angle, angle, 127, 0));
+				colour = SSD_Util::gradient(map(i, -angle, angle, 127, 0));
 				break; // Red to blue (air cond reverse)
 			case 7:
-				colour = gradient(map(i, -angle, angle, 35, 127));
+				colour = SSD_Util::gradient(map(i, -angle, angle, 35, 127));
 				break; // cyan to red
 			case 8:
-				colour = colorInterpolation(0,0,0,255,255,255,map(i,-angle,angle,0,w),w);
+				colour = SSD_Util::colorInterpolation(0,0,0,255,255,255,map(i,-angle,angle,0,w),w);
 				break; // black to white
 			case 9:
-				colour = colorInterpolation(0x80,0,0xC0,0xFF,0xFF,0,map(i,-angle,angle,0,w),w);
+				colour = SSD_Util::colorInterpolation(0x80,0,0xC0,0xFF,0xFF,0,map(i,-angle,angle,0,w),w);
 				break; // violet to yellow
 			default:
 				if (colorScheme > 9){
@@ -1662,101 +1694,70 @@ void SSD_13XX::ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint
 
 }
 
-//++++++++++++++OK
-void SSD_13XX::startPushData(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
-{
-	startTransaction();
-	if (_portrait) {
-		swapVals(x0,y0);
-		swapVals(x1,y1);
-	}
-	setAddrWindow_cont(x0,y0,x1,y1,false);
-}
-
-
-//++++++++++++++OK
-void SSD_13XX::pushData(uint16_t color)
-{
-	writedata16_cont(color);
-}
-
-//++++++++++++++OK
-void SSD_13XX::endPushData()
-{
-	closeTransaction();
-}
-
-//fast
-void SSD_13XX::pushColor(uint16_t color)
-{
-	startTransaction();
-	writedata16_last(color);
-	endTransaction();
-}
 
 
 
-void SSD_13XX::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,uint16_t f,uint16_t b,bool inverse)
-{
-	#if defined(SSD_1351_REGISTERS_H)
-		if (_portrait) swapVals(x,y);
-	#endif
-	#if defined(_FORCE_PROGMEM__)
-		const _smCharType * iconData 	= PROGMEM_read(&icon->data);
-		uint8_t		iWidth				= pgm_read_byte(&(icon->image_width));	//AVR ok
-		uint8_t		iHeight				= pgm_read_byte(&(icon->image_height)); //AVR ok
-		uint16_t	datalen				= pgm_read_word(&(icon->image_datalen));//AVR ok
-		//boolean	dataComp			= PROGMEM_read(&icon->image_comp);//not yet
-	#else
-		const _smCharType * iconData	= icon->data;//icon data
-		uint8_t		iWidth				= icon->image_width;
-		uint8_t		iHeight				= icon->image_height;
-		uint16_t	datalen				= icon->image_datalen;
-		//uint8_t		dataComp		= icon->image_comp;//not yet
-	#endif
+// void SSD_13XX::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,uint16_t f,uint16_t b,bool inverse)
+// {
+// 	#if defined(SSD_1351_REGISTERS_H)
+// 		if (_portrait) swapVals(x,y);
+// 	#endif
+// 	#if defined(_FORCE_PROGMEM__)
+// 		const _smCharType * iconData 	= PROGMEM_read(&icon->data);
+// 		uint8_t		iWidth				= pgm_read_byte(&(icon->image_width));	//AVR ok
+// 		uint8_t		iHeight				= pgm_read_byte(&(icon->image_height)); //AVR ok
+// 		uint16_t	datalen				= pgm_read_word(&(icon->image_datalen));//AVR ok
+// 		//boolean	dataComp			= PROGMEM_read(&icon->image_comp);//not yet
+// 	#else
+// 		const _smCharType * iconData	= icon->data;//icon data
+// 		uint8_t		iWidth				= icon->image_width;
+// 		uint8_t		iHeight				= icon->image_height;
+// 		uint16_t	datalen				= icon->image_datalen;
+// 		//uint8_t		dataComp		= icon->image_comp;//not yet
+// 	#endif
 
-	if (iWidth < 1 || iHeight < 1) return;//cannot be
-	if (scale < 1) scale = 1;
-	if ((x + iWidth) * scale >= _width || (y + iHeight) * scale >= _height) return;//cannot be
+// 	if (iWidth < 1 || iHeight < 1) return;//cannot be
+// 	if (scale < 1) scale = 1;
+// 	if ((x + iWidth) * scale >= _width || (y + iHeight) * scale >= _height) return;//cannot be
 
-	startTransaction();
-	//LGPO Rendering (uncomp)
-	if (!_portrait){
-		setAddrWindow_cont(x,y,iWidth+x,iHeight+y,false);
-	_glyphRender_unc(
-					iconData,
-					x,
-					y,
-					iWidth,
-					iHeight,
-					scale,
-					scale,
-					datalen,
-					0,
-					f,
-					b,
-					inverse
-	);
-	} else {
-		//setAddrWindow_cont(y,x,iWidth+y,iHeight+x,false);
-		setAddrWindow_cont(y,x,iWidth+y,iHeight+x,false);
-	_glyphRender_unc(
-					iconData,
-					y,
-					x,
-					iWidth,
-					iHeight,
-					scale,
-					scale,
-					datalen,
-					0,
-					f,
-					b,
-					inverse
-	);
-	}
-	closeTransaction();
-}
+// 	startTransaction();
+// 	//LGPO Rendering (uncomp)
+// 	if (!_portrait){
+// 		setAddrWindow_cont(x,y,iWidth+x,iHeight+y,false);
+// 	_glyphRender_unc(
+// 					iconData,
+// 					x,
+// 					y,
+// 					iWidth,
+// 					iHeight,
+// 					scale,
+// 					scale,
+// 					datalen,
+// 					0,
+// 					f,
+// 					b,
+// 					inverse
+// 	);
+// 	} else {
+// 		//setAddrWindow_cont(y,x,iWidth+y,iHeight+x,false);
+// 		setAddrWindow_cont(y,x,iWidth+y,iHeight+x,false);
+// 	_glyphRender_unc(
+// 					iconData,
+// 					y,
+// 					x,
+// 					iWidth,
+// 					iHeight,
+// 					scale,
+// 					scale,
+// 					datalen,
+// 					0,
+// 					f,
+// 					b,
+// 					inverse
+// 	);
+// 	}
+// 	closeTransaction();
+// }
 
 
 //OK with SetRemap 0...3
@@ -1871,507 +1872,507 @@ void SSD_13XX::drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w,
 /*********************************************************
 ********************  Text Functions *********************
 **********************************************************/
-void SSD_13XX::setCursor(int16_t x, int16_t y,enum SSD_13XX_centerMode c)
-{
-	if (c == NORM){// No centering
-		if (x == CENTER || y == CENTER) setCursor(x,y,SCREEN);
-		if (boundaryCheck(x,y)) return;//cannot be
-	} else if (c == SCREEN){// Absolute x,y or both center screen mode
-		if (x == CENTER && y == CENTER) {//center x,y
-			x = y = 0;//better reset since value is calculated in textWrite
-			_centerText = 3;
-		} else if (x == CENTER && y != CENTER) {//center on x
-			if (y > _height) return;//cannot be
-			x = 0;//better reset since value is calculated in textWrite
-			_centerText = 1;
-		} else if (y == CENTER && x != CENTER) {//center on y
-			if (x > _width) return;//cannot be
-			y = 0;//better reset since value is calculated in textWrite
-			_centerText = 2;
-		} else {
-			setCursor(x,y,NORM);
-		}
-	} else {// Relative to x,y or both center mode
-		if (x == CENTER || y == CENTER) setCursor(x,y,SCREEN);
-		if (c == REL_X){//relative to X
-			_centerText = 4;
-		} else if (c == REL_Y){//relative to Y
-			_centerText = 5;
-		} else if (c == REL_XY){//relative XY
-			_centerText = 6;
-		}
-	}
-	if (_portrait) swapVals(x,y);
-	_cursorX = x;
-	_cursorY = y;
-	setArea(0x0000,0x0000,x,y);
-}
+// void SSD_13XX::setCursor(int16_t x, int16_t y,enum SSD_13XX_centerMode c)
+// {
+// 	if (c == NORM){// No centering
+// 		if (x == CENTER || y == CENTER) setCursor(x,y,SCREEN);
+// 		if (boundaryCheck(x,y)) return;//cannot be
+// 	} else if (c == SCREEN){// Absolute x,y or both center screen mode
+// 		if (x == CENTER && y == CENTER) {//center x,y
+// 			x = y = 0;//better reset since value is calculated in textWrite
+// 			_centerText = 3;
+// 		} else if (x == CENTER && y != CENTER) {//center on x
+// 			if (y > _height) return;//cannot be
+// 			x = 0;//better reset since value is calculated in textWrite
+// 			_centerText = 1;
+// 		} else if (y == CENTER && x != CENTER) {//center on y
+// 			if (x > _width) return;//cannot be
+// 			y = 0;//better reset since value is calculated in textWrite
+// 			_centerText = 2;
+// 		} else {
+// 			setCursor(x,y,NORM);
+// 		}
+// 	} else {// Relative to x,y or both center mode
+// 		if (x == CENTER || y == CENTER) setCursor(x,y,SCREEN);
+// 		if (c == REL_X){//relative to X
+// 			_centerText = 4;
+// 		} else if (c == REL_Y){//relative to Y
+// 			_centerText = 5;
+// 		} else if (c == REL_XY){//relative XY
+// 			_centerText = 6;
+// 		}
+// 	}
+// 	if (_portrait) swapVals(x,y);
+// 	_cursorX = x;
+// 	_cursorY = y;
+// 	setArea(0x0000,0x0000,x,y);
+// }
 
-void SSD_13XX::getCursor(int16_t &x, int16_t &y)
-{
-	x = _cursorX;
-	y = _cursorY;
-}
-
-
-void SSD_13XX::setTextScale(uint8_t s)
-{
-	_textScaleX = _textScaleY = (s > 0) ? s : 1;
-}
+// void SSD_13XX::getCursor(int16_t &x, int16_t &y)
+// {
+// 	x = _cursorX;
+// 	y = _cursorY;
+// }
 
 
-void SSD_13XX::setTextScale(uint8_t sx,uint8_t sy)
-{
-	_textScaleX = (sx > 0) ? sx : 1;
-	_textScaleY = (sy > 0) ? sy : 1;
-}
-
-void SSD_13XX::setTextColor(uint16_t color)
-{
-	_textForeground = _textBackground = color;
-}
-
-void SSD_13XX::setTextColor(uint16_t frgrnd, uint16_t bckgnd)
-{
-	_textForeground = frgrnd;
-	_textBackground = bckgnd;
-}
+// void SSD_13XX::setTextScale(uint8_t s)
+// {
+// 	_textScaleX = _textScaleY = (s > 0) ? s : 1;
+// }
 
 
-void SSD_13XX::setTextWrap(boolean w)
-{
-	_textWrap = w;
-}
+// void SSD_13XX::setTextScale(uint8_t sx,uint8_t sy)
+// {
+// 	_textScaleX = (sx > 0) ? sx : 1;
+// 	_textScaleY = (sy > 0) ? sy : 1;
+// }
 
-void SSD_13XX::setCharSpacing(uint8_t space)
-{
-	_charSpacing = space;
-}
+// void SSD_13XX::setTextColor(uint16_t color)
+// {
+// 	_textForeground = _textBackground = color;
+// }
 
-void SSD_13XX::setFontInterline(uint8_t distance)
-{
-	_fontInterline = distance;
-}
-
-void SSD_13XX::setInternalFont(void)
-{
-	#if defined(_SSD_DEF_FONT_PATH)
-		setFont(&_SSD_DEF_FONT_NAME);
-	#else
-		//setFont(&nullfont);
-	#endif
-}
+// void SSD_13XX::setTextColor(uint16_t frgrnd, uint16_t bckgnd)
+// {
+// 	_textForeground = frgrnd;
+// 	_textBackground = bckgnd;
+// }
 
 
-int SSD_13XX::_getCharCode(uint8_t ch)
-{
-	int i;
-	//remap ?
-	if (_fontRemapOffset == 1 && (ch > 96 && ch < 123)){
-		ch -= 32;
-	} else if (_fontRemapOffset == 2 && ((ch > 64 && ch < 91))){
-		ch += 32;
-	}
-	//search for char code
-	for (i = 0;i < _currentFont->length;i++){
-		if (_currentFont->chars[i].char_code == ch) return i;
-	}
-	return -1;
-}
+// void SSD_13XX::setTextWrap(boolean w)
+// {
+// 	_textWrap = w;
+// }
+
+// void SSD_13XX::setCharSpacing(uint8_t space)
+// {
+// 	_charSpacing = space;
+// }
+
+// void SSD_13XX::setFontInterline(uint8_t distance)
+// {
+// 	_fontInterline = distance;
+// }
+
+// void SSD_13XX::setInternalFont(void)
+// {
+// 	#if defined(_SSD_DEF_FONT_PATH)
+// 		setFont(&_SSD_DEF_FONT_NAME);
+// 	#else
+// 		//setFont(&nullfont);
+// 	#endif
+// }
 
 
-/*
-	Return the lenght of a string in pixel with precision
-*/
-int SSD_13XX::_STRlen_helper(const char* buffer,int len)
-{
-	int charIndex = -1;
-	int i;
-	//if (len < 1) len = strlen(buffer);		//try to get data from string
-	//if (len < 1) return 0;					//better stop here
-	if (_currentFont->font_widthType != 0){		// fixed width font
-		return ((len * _spaceCharWidth));
-	} else {								// variable width, need to loop trough entire string!
-		int totW = 0;
-		for (i = 0;i < len;i++){			//loop trough buffer
-			if (buffer[i] == 32){			//a space
-				totW += _spaceCharWidth;
-			} else if (buffer[i] != 13 && buffer[i] != 10 && buffer[i] != 32){//avoid special char
-				charIndex = _getCharCode(buffer[i]);
-				if (charIndex > -1) {		//found!
-					#if defined(_FORCE_PROGMEM__)
-						totW += (pgm_read_byte(&(_currentFont->chars[charIndex].image->image_width)));
-					#else
-						totW += (_currentFont->chars[charIndex].image->image_width);
-					#endif
-					totW += _charSpacing;
-				}
-			}//inside permitted chars
-		}//buffer loop
-		return totW;
-	}//end variable w font
-}
+// int SSD_13XX::_getCharCode(uint8_t ch)
+// {
+// 	int i;
+// 	//remap ?
+// 	if (_fontRemapOffset == 1 && (ch > 96 && ch < 123)){
+// 		ch -= 32;
+// 	} else if (_fontRemapOffset == 2 && ((ch > 64 && ch < 91))){
+// 		ch += 32;
+// 	}
+// 	//search for char code
+// 	for (i = 0;i < _currentFont->length;i++){
+// 		if (_currentFont->chars[i].char_code == ch) return i;
+// 	}
+// 	return -1;
+// }
 
 
-void SSD_13XX::setFont(const tFont *font)
-{
-	_currentFont = font;
-	_fontRemapOffset =  _currentFont->remap_code;
-	//get all needed infos
-	// We just get the space width now...
-	int temp = _getCharCode(0x20);
-	if (temp > -1){
-		#if defined(_FORCE_PROGMEM__)
-			_spaceCharWidth = pgm_read_byte(&(_currentFont->chars[temp].image->image_width));
-		#else
-			_spaceCharWidth = (_currentFont->chars[temp].image->image_width);
-		#endif
-	} else {
-		//font malformed, doesn't have needed space parameter will return to system font
-		#if defined(_SSD_DEF_FONT_PATH)
-			setFont(&_SSD_DEF_FONT_NAME);
-		#else
-			//setFont(&nullfont);
-		#endif
-		return;
-	}
-}
+// /*
+// 	Return the lenght of a string in pixel with precision
+// */
+// int SSD_13XX::_STRlen_helper(const char* buffer,int len)
+// {
+// 	int charIndex = -1;
+// 	int i;
+// 	//if (len < 1) len = strlen(buffer);		//try to get data from string
+// 	//if (len < 1) return 0;					//better stop here
+// 	if (_currentFont->font_widthType != 0){		// fixed width font
+// 		return ((len * _spaceCharWidth));
+// 	} else {								// variable width, need to loop trough entire string!
+// 		int totW = 0;
+// 		for (i = 0;i < len;i++){			//loop trough buffer
+// 			if (buffer[i] == 32){			//a space
+// 				totW += _spaceCharWidth;
+// 			} else if (buffer[i] != 13 && buffer[i] != 10 && buffer[i] != 32){//avoid special char
+// 				charIndex = _getCharCode(buffer[i]);
+// 				if (charIndex > -1) {		//found!
+// 					#if defined(_FORCE_PROGMEM__)
+// 						totW += (pgm_read_byte(&(_currentFont->chars[charIndex].image->image_width)));
+// 					#else
+// 						totW += (_currentFont->chars[charIndex].image->image_width);
+// 					#endif
+// 					totW += _charSpacing;
+// 				}
+// 			}//inside permitted chars
+// 		}//buffer loop
+// 		return totW;
+// 	}//end variable w font
+// }
 
-/*
-Handle strings
-*/
-void SSD_13XX::_textWrite(const char* buffer, uint16_t len)
-{
-	uint16_t i;
-	if (len < 1) len = strlen(buffer);//try get the info from the buffer
-	if (len < 1) return;//better stop here, the string it's really empty!
-	// Center text flag enabled
-	if (_centerText > 0){
-		uint8_t stringWide = (_STRlen_helper(buffer,len) * _textScaleX) / 2;
-		uint8_t strMidHeight = (((_currentFont->font_height - _currentFont->font_descent) * _textScaleY) / 2);
-		if (_centerText < 4) {
-			//absolute
-			if (_portrait){
-				if (_centerText > 1)  _cursorX = (_height / 2) - strMidHeight;
-				if (_centerText != 2) _cursorY = (_width / 2) - stringWide;
-			} else {
-				if (_centerText > 1)  _cursorY = (_height / 2) - strMidHeight;
-				if (_centerText != 2) _cursorX = (_width / 2) - stringWide;
-			}
-		} else {
-			//relative
-			if (_portrait){
-				if (_centerText > 4)  _cursorX = _cursorX - strMidHeight;
-				if (_centerText != 5) _cursorY = _cursorY - stringWide;
-			} else {
-				if (_centerText > 4)  _cursorY = _cursorY - strMidHeight;
-				if (_centerText != 5) _cursorX = _cursorX - stringWide;
-			}
-		}
-		if (_cursorX < 0)_cursorX = 0;
-		if (_cursorY < 0)_cursorY = 0;
-		_centerText = 0;//reset
-	}//end center flag
-	//Loop trough every char and write them one by one until end (or a break!)
-	startTransaction();
-	for (i=0;i<len;i++){
-		if (_renderSingleChar(buffer[i])) {
-			//aha! in that case I have to break out!
-			break;
-		}
-		/*
-	#if defined(ESP8266)
-		yield();
-	#endif
-	*/
-	}//end loop
-	closeTransaction();
-}
 
-/*
-Preprocessor for single chars
-This function detect carriage/new line and space and perform separately.
-When a char it's detected it pass the info to the drawChar function.
-It return 0 most of the cases but can return 1 to inform the caller function to break
-the string write loop.
-*/
-bool SSD_13XX::_renderSingleChar(const char c)
-{
-	uint8_t borderRight = 0;
-	uint8_t borderBottom = 0;
-	if (c == 13){//------------------------------- CARRIAGE (detected) -----------------------
-		return 0;//ignore, always OK
-	} else if (c == 10){//------------------------- NEW LINE (detected) -----------------------
-		borderBottom = (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
-		if (!_portrait){
-			//borderBottom = (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
-			if (_cursorY + borderBottom  > _height) return 1;//too high!
-			_cursorX = 0;
-			_cursorY += borderBottom;
-		} else {//portrait
-			//borderBottom = (_currentFont->font_height * _textScaleX) + (_fontInterline * _textScaleX);
-			if (_cursorX + borderBottom  > _width) return 1;//too high!
-			_cursorX += borderBottom;
-			_cursorY = 0;
-		}
-		return 0;
-	} else if (c == 32){//--------------------------- SPACE (detected) -----------------------
-		if (!_portrait){
-			borderRight = (_spaceCharWidth * _textScaleX) + (_charSpacing * _textScaleX);
-			if (_textForeground != _textBackground) {//fill the space
-				if (_cursorX + borderRight >= _width) borderRight = _width - _cursorX;
-				//fillRect_cont(
-				drawRect_cont(
-					_cursorX,
-					_cursorY,
-					borderRight + (_charSpacing * _textScaleX),
-					(_currentFont->font_height * _textScaleY),
-					_textBackground,
-					_textBackground,
-					1
-				);
-			}
-			_cursorX += borderRight;
-			return 0;
-		} else {//portrait
-			borderRight = (_spaceCharWidth * _textScaleY) + (_charSpacing * _textScaleY);
-			if (_textForeground != _textBackground) {//fill the space
-				if (_cursorY + borderRight >= _height) borderRight = _height - _cursorY;
-				//fillRect_cont(
-				drawRect_cont(
-					_cursorY,
-					_cursorX,
-					borderRight,
-					(_currentFont->font_height * _textScaleX),
-					_textBackground,
-					_textBackground,
-					1
-				);
-			}
-			_cursorY += borderRight;
-			return 0;
-		}
-	} else {//-------------------------------------- CHAR  (detected) -------------------------
-		int charIndex = _getCharCode(c);//get char code
-		if (charIndex > -1){//check if it's valid
-			int charW = 0;
-			//I need to know the width...
-			#if defined(_FORCE_PROGMEM__)
-				charW = pgm_read_byte(&(_currentFont->chars[charIndex].image->image_width));
-			#else
-				charW = _currentFont->chars[charIndex].image->image_width;
-			#endif
-			//---------------------------------- WRAP is ON? --------------------------------
-			if (_textWrap){//wrap, goes in the new line
-				if (!_portrait && (_cursorX + (charW * _textScaleX) + (_charSpacing * _textScaleX)) >= _width){
-					_cursorX = 0;
-					_cursorY += (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
-				} else if (_portrait && (_cursorY + (charW * _textScaleY) + (_charSpacing * _textScaleY)) >= _width){
-					_cursorX += (_currentFont->font_height * _textScaleX) + (_fontInterline * _textScaleX);
-					_cursorY = 0;
-				}
-			} else {//not wrap, will get rid of the data
-				if (_portrait){
-					if (_cursorY + (charW * _textScaleY) + (_charSpacing * _textScaleY) >= _width) return 1;
-				} else {
-					if (_cursorX + (charW * _textScaleX) + (_charSpacing * _textScaleX) >= _width) return 1;
-				}
-			}
-			//-------------------------Actual single char drawing here -----------------------------------
-			//updated in 1.0p7
-			#if defined(_FORCE_PROGMEM__)
-				const _smCharType * charGlyp = PROGMEM_read(&_currentFont->chars[charIndex].image->data);//char data
-				int		totalBytes = pgm_read_word(&(_currentFont->chars[charIndex].image->image_datalen));
-			#else
-				const _smCharType * charGlyp = _currentFont->chars[charIndex].image->data;
-				int		totalBytes = _currentFont->chars[charIndex].image->image_datalen;
-			#endif
-			if (!_portrait){
-				if (_cursorY + (_currentFont->font_height * _textScaleY) > _height) return 1;//too high!
-				_glyphRender_unc(
-								charGlyp,
-								_cursorX,
-								_cursorY,
-								charW,
-								_currentFont->font_height,
-								_textScaleX,
-								_textScaleY,
-								totalBytes,
-								_charSpacing,
-								_textForeground,
-								_textBackground,
-								false
-				);
-				_cursorX += (charW * _textScaleX) + (_charSpacing * _textScaleX);//add charW to total
-			} else {
-				if (_cursorX + (_currentFont->font_height * _textScaleX) > _width) return 1;//too high!
-				_glyphRender_unc(
-								charGlyp,
-								_cursorY,
-								_cursorX,
-								charW,
-								_currentFont->font_height,
-								_textScaleX,
-								_textScaleY,
-								totalBytes,
-								_charSpacing,
-								_textForeground,
-								_textBackground,
-								false
-				);
-				_cursorY += (charW * _textScaleX) + (_charSpacing * _textScaleY);//add charW to total
-			}
-			return 0;
-		}//end valid
-		return 0;
-	}//end char
-}
+// void SSD_13XX::setFont(const tFont *font)
+// {
+// 	_currentFont = font;
+// 	_fontRemapOffset =  _currentFont->remap_code;
+// 	//get all needed infos
+// 	// We just get the space width now...
+// 	int temp = _getCharCode(0x20);
+// 	if (temp > -1){
+// 		#if defined(_FORCE_PROGMEM__)
+// 			_spaceCharWidth = pgm_read_byte(&(_currentFont->chars[temp].image->image_width));
+// 		#else
+// 			_spaceCharWidth = (_currentFont->chars[temp].image->image_width);
+// 		#endif
+// 	} else {
+// 		//font malformed, doesn't have needed space parameter will return to system font
+// 		#if defined(_SSD_DEF_FONT_PATH)
+// 			setFont(&_SSD_DEF_FONT_NAME);
+// 		#else
+// 			//setFont(&nullfont);
+// 		#endif
+// 		return;
+// 	}
+// }
 
-/*
- - LGPO - rendering engine, part 1 (GNU v3)
-This is the draw char function (version for uncompressed font)
-It detects blank and filled lines and render separately, this is the first
-accelleration step of the unique (and currently under commercial licence) sumotoy render engine,
-it's a variation of LPGO font render accelleration used in RA8875 (under GNU v3).
-The lines are not blank or filled are passed to the grouping function that is the second part of the accelleration.
-*/
-void SSD_13XX::_glyphRender_unc(
-									const 		_smCharType *pixelsArray,
-									int16_t 	x,
-									int16_t 	y,
-									int 		glyphWidth,
-									int 		glyphHeight,
-									uint8_t 	scaleX,
-									uint8_t	 	scaleY,
-									uint16_t 	totalBytes,
-									uint8_t 	cspacing,
-									uint16_t 	foreColor,
-									uint16_t 	backColor,
-									bool 		inverse
-									)
-{
-	//start by getting some glyph data...
-	int i;
-	uint8_t temp = 0;
-	//some basic variable...
-	uint8_t currentXposition = 0;//the current position of the writing cursor in the x axis, from 0 to glyphWidth
-	uint8_t currentYposition = 0;//the current position of the writing cursor in the y axis, from 0 to _FNTheight
-	uint8_t tempYpos = 0;
-	uint16_t currentByte = 0;//the current byte in reading (from 0 to totalBytes)
-	bool lineBuffer[glyphWidth+1];//the temporary line buffer
-	int lineChecksum = 0;//part of the optimizer
-	//Fill background if needed.
-	//if (foreColor != backColor) fillRect_cont(x,y,((glyphWidth * scaleX) + (cspacing * scaleX)),(glyphHeight * scaleY),backColor,backColor);
-	if (foreColor != backColor) drawRect_cont(x,y,((glyphWidth * scaleX) + (cspacing * scaleX)),(glyphHeight * scaleY),backColor,backColor,1);
-	//the main loop that will read all bytes of the glyph
-	while (currentByte < totalBytes){
-		//delay(1);
-		//read n byte
-		#if defined(_FORCE_PROGMEM__)
-			temp = pgm_read_byte(&(pixelsArray[currentByte]));
-		#else
-			temp = pixelsArray[currentByte];
-		#endif
-		if (inverse) temp = ~temp;//invert byte if needed
-		//read current bits inside current byte
-		for (i = 7; i >= 0; i--){
-			lineBuffer[currentXposition] = bitRead(temp,i);//continue fill line buffer
-			lineChecksum += lineBuffer[currentXposition++];
-			//----------------------------------- exception
-			if (currentXposition == glyphWidth){
-				//line buffer has been filled!
-				currentXposition = 0;//reset the line x position
-				tempYpos = y + (currentYposition * scaleY);
-				if (lineChecksum < 1){
-					//do nothing
-				} else if (lineChecksum == glyphWidth){
-					//full line
-					//drawRect_cont(
-					fillRect_cont(
-							x,
-							tempYpos,
-							(glyphWidth * scaleX),
-							scaleY,
-							foreColor,
-							backColor//,//backColor
-							//1
-					);
-				} else {
-					//line render
-					_charLineRender(
-							lineBuffer,
-							glyphWidth,
-							x,
-							y,
-							scaleX,
-							scaleY,
-							currentYposition,
-							foreColor
-					);
-				}
-				currentYposition++;//next line
-				lineChecksum = 0;//reset checksum
-			}//end exception
-		}//end reading single byte
-		currentByte++;
-	}
-}
+// /*
+// Handle strings
+// */
+// void SSD_13XX::_textWrite(const char* buffer, uint16_t len)
+// {
+// 	uint16_t i;
+// 	if (len < 1) len = strlen(buffer);//try get the info from the buffer
+// 	if (len < 1) return;//better stop here, the string it's really empty!
+// 	// Center text flag enabled
+// 	if (_centerText > 0){
+// 		uint8_t stringWide = (_STRlen_helper(buffer,len) * _textScaleX) / 2;
+// 		uint8_t strMidHeight = (((_currentFont->font_height - _currentFont->font_descent) * _textScaleY) / 2);
+// 		if (_centerText < 4) {
+// 			//absolute
+// 			if (_portrait){
+// 				if (_centerText > 1)  _cursorX = (_height / 2) - strMidHeight;
+// 				if (_centerText != 2) _cursorY = (_width / 2) - stringWide;
+// 			} else {
+// 				if (_centerText > 1)  _cursorY = (_height / 2) - strMidHeight;
+// 				if (_centerText != 2) _cursorX = (_width / 2) - stringWide;
+// 			}
+// 		} else {
+// 			//relative
+// 			if (_portrait){
+// 				if (_centerText > 4)  _cursorX = _cursorX - strMidHeight;
+// 				if (_centerText != 5) _cursorY = _cursorY - stringWide;
+// 			} else {
+// 				if (_centerText > 4)  _cursorY = _cursorY - strMidHeight;
+// 				if (_centerText != 5) _cursorX = _cursorX - stringWide;
+// 			}
+// 		}
+// 		if (_cursorX < 0)_cursorX = 0;
+// 		if (_cursorY < 0)_cursorY = 0;
+// 		_centerText = 0;//reset
+// 	}//end center flag
+// 	//Loop trough every char and write them one by one until end (or a break!)
+// 	startTransaction();
+// 	for (i=0;i<len;i++){
+// 		if (_renderSingleChar(buffer[i])) {
+// 			//aha! in that case I have to break out!
+// 			break;
+// 		}
+// 		/*
+// 	#if defined(ESP8266)
+// 		yield();
+// 	#endif
+// 	*/
+// 	}//end loop
+// 	closeTransaction();
+// }
 
-/*
- - LGPO - rendering engine, part 2 (GNU v3)
-LPGO font render accelleration (GNU v3), part 2, pixel grouping.
-the sumotoy proprietary line render engine, please do not steal
-without author permission since there's currently some licence on it!
-This function group pixels with same color and perform much less memory addressing
-than any other similar function I ever seen.
-Here has been used to avoid multiple memory addressing but can be inproved, the LPGO shines
-where harware accelleration it's present but this chip has only direct memory access...
-*/
-void SSD_13XX::_charLineRender(
-									bool 			lineBuffer[],
-									int 			charW,
-									int16_t 		x,
-									int16_t 		y,
-									uint8_t 		scaleX,
-									uint8_t 		scaleY,
-									int16_t 		currentYposition,
-									uint16_t 		foreColor
-									)
-{
+// /*
+// Preprocessor for single chars
+// This function detect carriage/new line and space and perform separately.
+// When a char it's detected it pass the info to the drawChar function.
+// It return 0 most of the cases but can return 1 to inform the caller function to break
+// the string write loop.
+// */
+// bool SSD_13XX::_renderSingleChar(const char c)
+// {
+// 	uint8_t borderRight = 0;
+// 	uint8_t borderBottom = 0;
+// 	if (c == 13){//------------------------------- CARRIAGE (detected) -----------------------
+// 		return 0;//ignore, always OK
+// 	} else if (c == 10){//------------------------- NEW LINE (detected) -----------------------
+// 		borderBottom = (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
+// 		if (!_portrait){
+// 			//borderBottom = (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
+// 			if (_cursorY + borderBottom  > _height) return 1;//too high!
+// 			_cursorX = 0;
+// 			_cursorY += borderBottom;
+// 		} else {//portrait
+// 			//borderBottom = (_currentFont->font_height * _textScaleX) + (_fontInterline * _textScaleX);
+// 			if (_cursorX + borderBottom  > _width) return 1;//too high!
+// 			_cursorX += borderBottom;
+// 			_cursorY = 0;
+// 		}
+// 		return 0;
+// 	} else if (c == 32){//--------------------------- SPACE (detected) -----------------------
+// 		if (!_portrait){
+// 			borderRight = (_spaceCharWidth * _textScaleX) + (_charSpacing * _textScaleX);
+// 			if (_textForeground != _textBackground) {//fill the space
+// 				if (_cursorX + borderRight >= _width) borderRight = _width - _cursorX;
+// 				//fillRect_cont(
+// 				drawRect_cont(
+// 					_cursorX,
+// 					_cursorY,
+// 					borderRight + (_charSpacing * _textScaleX),
+// 					(_currentFont->font_height * _textScaleY),
+// 					_textBackground,
+// 					_textBackground,
+// 					1
+// 				);
+// 			}
+// 			_cursorX += borderRight;
+// 			return 0;
+// 		} else {//portrait
+// 			borderRight = (_spaceCharWidth * _textScaleY) + (_charSpacing * _textScaleY);
+// 			if (_textForeground != _textBackground) {//fill the space
+// 				if (_cursorY + borderRight >= _height) borderRight = _height - _cursorY;
+// 				//fillRect_cont(
+// 				drawRect_cont(
+// 					_cursorY,
+// 					_cursorX,
+// 					borderRight,
+// 					(_currentFont->font_height * _textScaleX),
+// 					_textBackground,
+// 					_textBackground,
+// 					1
+// 				);
+// 			}
+// 			_cursorY += borderRight;
+// 			return 0;
+// 		}
+// 	} else {//-------------------------------------- CHAR  (detected) -------------------------
+// 		int charIndex = _getCharCode(c);//get char code
+// 		if (charIndex > -1){//check if it's valid
+// 			int charW = 0;
+// 			//I need to know the width...
+// 			#if defined(_FORCE_PROGMEM__)
+// 				charW = pgm_read_byte(&(_currentFont->chars[charIndex].image->image_width));
+// 			#else
+// 				charW = _currentFont->chars[charIndex].image->image_width;
+// 			#endif
+// 			//---------------------------------- WRAP is ON? --------------------------------
+// 			if (_textWrap){//wrap, goes in the new line
+// 				if (!_portrait && (_cursorX + (charW * _textScaleX) + (_charSpacing * _textScaleX)) >= _width){
+// 					_cursorX = 0;
+// 					_cursorY += (_currentFont->font_height * _textScaleY) + (_fontInterline * _textScaleY);
+// 				} else if (_portrait && (_cursorY + (charW * _textScaleY) + (_charSpacing * _textScaleY)) >= _width){
+// 					_cursorX += (_currentFont->font_height * _textScaleX) + (_fontInterline * _textScaleX);
+// 					_cursorY = 0;
+// 				}
+// 			} else {//not wrap, will get rid of the data
+// 				if (_portrait){
+// 					if (_cursorY + (charW * _textScaleY) + (_charSpacing * _textScaleY) >= _width) return 1;
+// 				} else {
+// 					if (_cursorX + (charW * _textScaleX) + (_charSpacing * _textScaleX) >= _width) return 1;
+// 				}
+// 			}
+// 			//-------------------------Actual single char drawing here -----------------------------------
+// 			//updated in 1.0p7
+// 			#if defined(_FORCE_PROGMEM__)
+// 				const _smCharType * charGlyp = PROGMEM_read(&_currentFont->chars[charIndex].image->data);//char data
+// 				int		totalBytes = pgm_read_word(&(_currentFont->chars[charIndex].image->image_datalen));
+// 			#else
+// 				const _smCharType * charGlyp = _currentFont->chars[charIndex].image->data;
+// 				int		totalBytes = _currentFont->chars[charIndex].image->image_datalen;
+// 			#endif
+// 			if (!_portrait){
+// 				if (_cursorY + (_currentFont->font_height * _textScaleY) > _height) return 1;//too high!
+// 				_glyphRender_unc(
+// 								charGlyp,
+// 								_cursorX,
+// 								_cursorY,
+// 								charW,
+// 								_currentFont->font_height,
+// 								_textScaleX,
+// 								_textScaleY,
+// 								totalBytes,
+// 								_charSpacing,
+// 								_textForeground,
+// 								_textBackground,
+// 								false
+// 				);
+// 				_cursorX += (charW * _textScaleX) + (_charSpacing * _textScaleX);//add charW to total
+// 			} else {
+// 				if (_cursorX + (_currentFont->font_height * _textScaleX) > _width) return 1;//too high!
+// 				_glyphRender_unc(
+// 								charGlyp,
+// 								_cursorY,
+// 								_cursorX,
+// 								charW,
+// 								_currentFont->font_height,
+// 								_textScaleX,
+// 								_textScaleY,
+// 								totalBytes,
+// 								_charSpacing,
+// 								_textForeground,
+// 								_textBackground,
+// 								false
+// 				);
+// 				_cursorY += (charW * _textScaleX) + (_charSpacing * _textScaleY);//add charW to total
+// 			}
+// 			return 0;
+// 		}//end valid
+// 		return 0;
+// 	}//end char
+// }
 
-	int xlinePos = 0;
-	int px;
-	uint8_t endPix = 0;
-	bool refPixel = false;
-	while (xlinePos < charW){
-		refPixel = lineBuffer[xlinePos];//xlinePos pix as reference value for next pixels
-		//detect and render concurrent pixels
-		for (px = xlinePos;px <= charW;px++){
-			if (lineBuffer[px] == lineBuffer[xlinePos] && px < charW){
-				//grouping pixels with same val
-				endPix++;
-			} else {
-				if (refPixel) {
-						//fillRect_cont(
-						drawRect_cont(
-						x,
-						y + (currentYposition * scaleY),
-						(endPix * scaleX),
-						scaleY,
-						foreColor,
-						foreColor,
-						1
-					);
-				}
-				//reset and update some vals
-				xlinePos += endPix;
-				x += endPix * scaleX;
-				endPix = 0;
-				break;//exit cycle for...
-			}
-		}
-	}//while
-}
+// /*
+//  - LGPO - rendering engine, part 1 (GNU v3)
+// This is the draw char function (version for uncompressed font)
+// It detects blank and filled lines and render separately, this is the first
+// accelleration step of the unique (and currently under commercial licence) sumotoy render engine,
+// it's a variation of LPGO font render accelleration used in RA8875 (under GNU v3).
+// The lines are not blank or filled are passed to the grouping function that is the second part of the accelleration.
+// */
+// void SSD_13XX::_glyphRender_unc(
+// 									const 		_smCharType *pixelsArray,
+// 									int16_t 	x,
+// 									int16_t 	y,
+// 									int 		glyphWidth,
+// 									int 		glyphHeight,
+// 									uint8_t 	scaleX,
+// 									uint8_t	 	scaleY,
+// 									uint16_t 	totalBytes,
+// 									uint8_t 	cspacing,
+// 									uint16_t 	foreColor,
+// 									uint16_t 	backColor,
+// 									bool 		inverse
+// 									)
+// {
+// 	//start by getting some glyph data...
+// 	int i;
+// 	uint8_t temp = 0;
+// 	//some basic variable...
+// 	uint8_t currentXposition = 0;//the current position of the writing cursor in the x axis, from 0 to glyphWidth
+// 	uint8_t currentYposition = 0;//the current position of the writing cursor in the y axis, from 0 to _FNTheight
+// 	uint8_t tempYpos = 0;
+// 	uint16_t currentByte = 0;//the current byte in reading (from 0 to totalBytes)
+// 	bool lineBuffer[glyphWidth+1];//the temporary line buffer
+// 	int lineChecksum = 0;//part of the optimizer
+// 	//Fill background if needed.
+// 	//if (foreColor != backColor) fillRect_cont(x,y,((glyphWidth * scaleX) + (cspacing * scaleX)),(glyphHeight * scaleY),backColor,backColor);
+// 	if (foreColor != backColor) drawRect_cont(x,y,((glyphWidth * scaleX) + (cspacing * scaleX)),(glyphHeight * scaleY),backColor,backColor,1);
+// 	//the main loop that will read all bytes of the glyph
+// 	while (currentByte < totalBytes){
+// 		//delay(1);
+// 		//read n byte
+// 		#if defined(_FORCE_PROGMEM__)
+// 			temp = pgm_read_byte(&(pixelsArray[currentByte]));
+// 		#else
+// 			temp = pixelsArray[currentByte];
+// 		#endif
+// 		if (inverse) temp = ~temp;//invert byte if needed
+// 		//read current bits inside current byte
+// 		for (i = 7; i >= 0; i--){
+// 			lineBuffer[currentXposition] = bitRead(temp,i);//continue fill line buffer
+// 			lineChecksum += lineBuffer[currentXposition++];
+// 			//----------------------------------- exception
+// 			if (currentXposition == glyphWidth){
+// 				//line buffer has been filled!
+// 				currentXposition = 0;//reset the line x position
+// 				tempYpos = y + (currentYposition * scaleY);
+// 				if (lineChecksum < 1){
+// 					//do nothing
+// 				} else if (lineChecksum == glyphWidth){
+// 					//full line
+// 					//drawRect_cont(
+// 					fillRect_cont(
+// 							x,
+// 							tempYpos,
+// 							(glyphWidth * scaleX),
+// 							scaleY,
+// 							foreColor,
+// 							backColor//,//backColor
+// 							//1
+// 					);
+// 				} else {
+// 					//line render
+// 					_charLineRender(
+// 							lineBuffer,
+// 							glyphWidth,
+// 							x,
+// 							y,
+// 							scaleX,
+// 							scaleY,
+// 							currentYposition,
+// 							foreColor
+// 					);
+// 				}
+// 				currentYposition++;//next line
+// 				lineChecksum = 0;//reset checksum
+// 			}//end exception
+// 		}//end reading single byte
+// 		currentByte++;
+// 	}
+// }
+
+// /*
+//  - LGPO - rendering engine, part 2 (GNU v3)
+// LPGO font render accelleration (GNU v3), part 2, pixel grouping.
+// the sumotoy proprietary line render engine, please do not steal
+// without author permission since there's currently some licence on it!
+// This function group pixels with same color and perform much less memory addressing
+// than any other similar function I ever seen.
+// Here has been used to avoid multiple memory addressing but can be inproved, the LPGO shines
+// where harware accelleration it's present but this chip has only direct memory access...
+// */
+// void SSD_13XX::_charLineRender(
+// 									bool 			lineBuffer[],
+// 									int 			charW,
+// 									int16_t 		x,
+// 									int16_t 		y,
+// 									uint8_t 		scaleX,
+// 									uint8_t 		scaleY,
+// 									int16_t 		currentYposition,
+// 									uint16_t 		foreColor
+// 									)
+// {
+
+// 	int xlinePos = 0;
+// 	int px;
+// 	uint8_t endPix = 0;
+// 	bool refPixel = false;
+// 	while (xlinePos < charW){
+// 		refPixel = lineBuffer[xlinePos];//xlinePos pix as reference value for next pixels
+// 		//detect and render concurrent pixels
+// 		for (px = xlinePos;px <= charW;px++){
+// 			if (lineBuffer[px] == lineBuffer[xlinePos] && px < charW){
+// 				//grouping pixels with same val
+// 				endPix++;
+// 			} else {
+// 				if (refPixel) {
+// 						//fillRect_cont(
+// 						drawRect_cont(
+// 						x,
+// 						y + (currentYposition * scaleY),
+// 						(endPix * scaleX),
+// 						scaleY,
+// 						foreColor,
+// 						foreColor,
+// 						1
+// 					);
+// 				}
+// 				//reset and update some vals
+// 				xlinePos += endPix;
+// 				x += endPix * scaleX;
+// 				endPix = 0;
+// 				break;//exit cycle for...
+// 			}
+// 		}
+// 	}//while
+// }
 
 
 /* ========================================================================
@@ -2392,11 +2393,11 @@ void SSD_13XX::drawFastVLine_cont(int16_t x, int16_t y, int16_t h, uint16_t colo
 		do { writedata16_cont(color); } while (--h > 0);
 }
 
-void SSD_13XX::drawPixel_cont(int16_t x, int16_t y, uint16_t color)
-{
-		setAddrWindow_cont(x, y, x + 1, y + 1,true);
-		writedata16_cont(color);
-}
+// void SSD_13XX::drawPixel_cont(int16_t x, int16_t y, uint16_t color)
+// {
+// 		setAddrWindow_cont(x, y, x + 1, y + 1,true);
+// 		writedata16_cont(color);
+// }
 
 
 void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
@@ -2405,7 +2406,7 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
 		int dly = _dlyHelper(x1-x0,y1-y0,CMD_DLY_LINE);
 		uint8_t r,g,b;
-		_convertColor(color,r,g,b);
+		SSD_Util::_convertColor(color,r,g,b);
 		_sendLineData_cont(x0,y0,x1,y1);
 		_sendColor_cont(r,g,b);
 		delayMicroseconds(dly);
@@ -2512,36 +2513,31 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 	void SSD_13XX::_sendColor_cont(uint16_t color)
 	{
 		uint8_t r,g,b;
-		_convertColor(color,r,g,b);
+		SSD_Util::_convertColor(color,r,g,b);
 		writecommand_cont(r);writecommand_cont(g);writecommand_cont(b);
 	}
 	
 	void SSD_13XX::_fillUtility(bool filling)
 	{
+        static bool _filled;
 		if (filling != _filled){
+
 			_filled = filling;
 			writecommand_cont(CMD_FILL);
-			if (_filled){
+			if (filling){
 				writecommand_cont(0x01);
 			} else {
 				writecommand_cont(0x00);
 			}
-		}
+        }
 	}
 
-	int SSD_13XX::_dlyHelper(int16_t w,int16_t h,int maxDly)//in microseconds
-	{
-		if (w <= 0 || h <= 0) return CMD_DLY_MIN;
-		return map(w*h,2,SSD_CGRAM,CMD_DLY_MIN,maxDly);
-	}
+	// int SSD_13XX::_dlyHelper(int16_t w,int16_t h,int maxDly)//in microseconds
+	// {
+	// 	if (w <= 0 || h <= 0) return CMD_DLY_MIN;
+	// 	return map(w*h,2,SSD_CGRAM,CMD_DLY_MIN,maxDly);
+	// }
 
-	void SSD_13XX::_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b)
-	{
-		r = (uint8_t)((color >> 11) << 1);
-		g =	(uint8_t)((color >> 5) & 0x3F);
-		b = (uint8_t)((color << 1) & 0x3F);
-	}
-		
 	/*
 	void SSD_13XX::_convertColor(uint16_t color,uint8_t &r,uint8_t &g,uint8_t &b)
 	{
@@ -2564,143 +2560,89 @@ void SSD_13XX::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uin
 #endif
 
 	//+++++++++OK
-	void SSD_13XX::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled)
-	{
-		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-			if (w < 2 && h < 2) {
-				drawPixel_cont(x,y,color1);
-				return;
-			}
-			if (_portrait){
-				swapVals(x, y);
-				swapVals(w, h);
-			}
-			if (x >= _width || y >= _height) return;
-			int dly = _dlyHelper(w,h,CMD_DLY_FILL);
+	// void SSD_13XX::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled)
+	// {
+	// 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+	// 		if (w < 2 && h < 2) {
+	// 			drawPixel_cont(x,y,color1);
+	// 			return;
+	// 		}
+	// 		if (_portrait){
+	// 			swapVals(x, y);
+	// 			swapVals(w, h);
+	// 		}
+	// 		if (x >= _width || y >= _height) return;
+	// 		int dly = _dlyHelper(w,h,CMD_DLY_FILL);
 
-			uint8_t r1,g1,b1,r2,g2,b2;
-			_convertColor(color1,r1,g1,b1);
-			if (color1 != color2){
-				_convertColor(color2,r2,g2,b2);
-			} else {
-				r2 = r1;g2 = g1;b2 = b1;
-			}
-			_fillUtility(filled);
-			writecommand_cont(CMD_DRAWRECT);
-			writecommand_cont(x & 0xFF);
-			writecommand_cont(y & 0xFF);
-			if ((x + w - 1) >= SSD_WIDTH) {
-				writecommand_cont((SSD_WIDTH-1) & 0xFF);
-			} else {
-				writecommand_cont(((x + w) - 1) & 0xFF);
-			}
-			if ((y + h - 1) >= SSD_HEIGHT) {
-				writecommand_cont((SSD_HEIGHT-1) & 0xFF);
-			} else {
-				writecommand_cont(((y + h) - 1) & 0xFF);
-			}
-			_sendColor_cont(r1,g1,b1);
-			_sendColor_cont(r2,g2,b2);
-			delayMicroseconds(dly);
-		#else
-			if (filled){
-				fillRect_cont(x,y,w,h,color1,color2);
-			} else {
-				//TODO Grandient? (and color2)
-				drawFastHLine_cont(x, y, w, color1);
-				drawFastHLine_cont(x, (y+h)-1, w, color1);
-				drawFastVLine_cont(x, y, h, color1);
-				drawFastVLine_cont((x+w)-1, y, h, color1);	
-			}
-		#endif
-	}
+	// 		uint8_t r1,g1,b1,r2,g2,b2;
+	// 		_convertColor(color1,r1,g1,b1);
+	// 		if (color1 != color2){
+	// 			_convertColor(color2,r2,g2,b2);
+	// 		} else {
+	// 			r2 = r1;g2 = g1;b2 = b1;
+	// 		}
+	// 		_fillUtility(filled);
+	// 		writecommand_cont(CMD_DRAWRECT);
+	// 		writecommand_cont(x & 0xFF);
+	// 		writecommand_cont(y & 0xFF);
+	// 		if ((x + w - 1) >= SSD_WIDTH) {
+	// 			writecommand_cont((SSD_WIDTH-1) & 0xFF);
+	// 		} else {
+	// 			writecommand_cont(((x + w) - 1) & 0xFF);
+	// 		}
+	// 		if ((y + h - 1) >= SSD_HEIGHT) {
+	// 			writecommand_cont((SSD_HEIGHT-1) & 0xFF);
+	// 		} else {
+	// 			writecommand_cont(((y + h) - 1) & 0xFF);
+	// 		}
+	// 		_sendColor_cont(r1,g1,b1);
+	// 		_sendColor_cont(r2,g2,b2);
+	// 		delayMicroseconds(dly);
+	// 	#else
+	// 		if (filled){
+	// 			fillRect_cont(x,y,w,h,color1,color2);
+	// 		} else {
+	// 			//TODO Grandient? (and color2)
+	// 			drawFastHLine_cont(x, y, w, color1);
+	// 			drawFastHLine_cont(x, (y+h)-1, w, color1);
+	// 			drawFastVLine_cont(x, y, h, color1);
+	// 			drawFastVLine_cont((x+w)-1, y, h, color1);	
+	// 		}
+	// 	#endif
+	// }
 
-	void SSD_13XX::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix)
-	{
-		if (rotFix && _portrait){
-			swapVals(x0, y0);
-			swapVals(x1, y1);
-		}
-		#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-			writecommand_cont(CMD_SETCOLUMN); //Column
-			writecommand_cont(x0); writecommand_cont(x1);
-			writecommand_cont(CMD_SETROW); //Page
-			writecommand_cont(y0); writecommand_cont(y1);
-		#else
-			writecommand_cont(CMD_SETCOLUMN); //Column
-			writedata8_cont(x0); writedata8_cont(x1);
-			writecommand_cont(CMD_SETROW); //Page
-			writedata8_cont(y0); writedata8_cont(y1);
+	// void SSD_13XX::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix)
+	// {
+	// 	if (rotFix && _portrait){
+	// 		swapVals(x0, y0);
+	// 		swapVals(x1, y1);
+	// 	}
+	// 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+	// 		writecommand_cont(CMD_SETCOLUMN); //Column
+	// 		writecommand_cont(x0); writecommand_cont(x1);
+	// 		writecommand_cont(CMD_SETROW); //Page
+	// 		writecommand_cont(y0); writecommand_cont(y1);
+	// 	#else
+	// 		writecommand_cont(CMD_SETCOLUMN); //Column
+	// 		writedata8_cont(x0); writedata8_cont(x1);
+	// 		writecommand_cont(CMD_SETROW); //Page
+	// 		writedata8_cont(y0); writedata8_cont(y1);
 			
-			writecommand_cont(CMD_WRITERAM);
-		#endif
-	}
+	// 		writecommand_cont(CMD_WRITERAM);
+	// 	#endif
+	// }
 
 	void SSD_13XX::setAddrWindow_cont(uint16_t x, uint16_t y)
 	{
 		setAddrWindow_cont(x,y,SSD_WIDTH,SSD_HEIGHT,false);
 	}
 
-	bool SSD_13XX::boundaryCheck(int16_t xw,int16_t yh)
-	{
-		if ((xw >= _width) || (yh >= _height)) return true;
-		return false;
-	}
+	// bool SSD_13XX::boundaryCheck(int16_t xw,int16_t yh)
+	// {
+	// 	if ((xw >= _width) || (yh >= _height)) return true;
+	// 	return false;
+	// }
 
-	int16_t SSD_13XX::sizeCheck(int16_t origin,int16_t len,int16_t maxVal)
-	{
-		if (((origin + len) - 1) >= maxVal) len = maxVal - origin;
-		return len;
-	}
-
-
-    #if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-    #else
-
-    #endif
-
-/*
-void SSD_13XX::printPacket(word data,uint8_t count){
-  for (int i=count-1; i>=0; i--){
-    if (bitRead(data,i)==1){
-      Serial.print("1");
-    }
-    else {
-      Serial.print("0");
-    }
-  }
-  Serial.print(" -> 0x");
-  if (count == 8){
-	  Serial.print((byte)data,HEX);
-  } else {
-	  Serial.print(data,HEX);
-  }
-  Serial.print("\n");
-}
-*/
-
-
-
-
-
-/*
-  uint16_t r,g,b;
-  if(_bitDepth){
-    r=(color)&0x1F;//five bits
-    g=(color>>5)&0x3F;//six bits
-    b=(color>>11)&0x1F;//five bits
-    r=r<<1;//shift to fill six bits
-    g=g<<0;//shift to fill six bits
-    b=b<<1;//shift to fill six bits
-  }else{
-    r=(color)&0x03;//two bits
-    g=(color>>2)&0x07;//three bits
-    b=(color>>5)&0x07;//three bits
-    r|=(r<<4)|(r<<2);//copy to fill six bits
-    g|=g<<3;//copy to fill six bits
-    b|=b<<3;//copy to fill six bits
-}
-*/
 
 
 
