@@ -82,7 +82,7 @@ Icon Render              1754
 #include <stdlib.h>
 // #include "Print.h"
 #include <SPI.h>
-#include "Spi/Spi_Instance.h"
+#include "Spi_Driver.h"
 
 #include "_includes/_cpuCommons.h"
 #include "_includes/_common_16bit_colors.h"
@@ -93,31 +93,19 @@ Icon Render              1754
 #include "_includes/sumotoy_imageDescription.h"
 #include "_includes/sumotoy_iconDescription.h"
 
-#if !defined(swapVals)
-	#if defined(ESP8266)
-		#define swapVals(a, b) { int16_t t = a; a = b; b = t; }
-	#else
-		#define swapVals(a, b) { typeof(a) t = a; a = b; b = t; }
-	#endif
-#endif
-
+#include "SSD_ScreenConfig.h"
 
 
 enum SSD_13XX_modes{NORMAL=0,PWRSAVE,INVERT,DISP_ON, DISP_DIM,DISP_OFF,PROTECT,ALL_ON,ALL_OFF};
 enum SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
 
-#ifdef __cplusplus
 class SSD_13XX {
 
  public:
-	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-		SSD_13XX(SPI_Instance spi, const uint8_t rstpin);
-	#elif defined(__MKL26Z64__)
-		SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin=255,const uint8_t mosi=11,const uint8_t sclk=13);
-	#else
-		SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin=255);
-	#endif
-				//avoidSPIinit=true set everithing but not call SPI.init()(you should init SPI before!)
+
+    SSD_13XX(SPI_Driver spi, const uint8_t rstPin);
+
+
 	void     	begin();
 	void		setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
 	void		changeMode(const enum SSD_13XX_modes m);
@@ -133,7 +121,6 @@ class SSD_13XX {
 	uint16_t 	getBackground(void);
 	uint16_t 	getForeground(void);
 	void 		setBrightness(uint8_t brightness);
-	uint8_t 	getErrorCode(void);
 	void 		setColorDepth(uint8_t depth);
 	void 		setColorOrder(bool order);
 	//---------------------------- GEOMETRY ------------------------------------------------
@@ -159,9 +146,7 @@ class SSD_13XX {
 
 
  protected:
-	uint8_t 				_rst;
-	volatile int16_t		_width, _height;
-	volatile uint8_t		_remapReg;
+	uint8_t 				_rstPin;
 
 
 
@@ -169,23 +154,17 @@ class SSD_13XX {
 
  private:
  
-    SPI_Instance _spi;
+    SPI_Driver _spi;
 
-	uint8_t					_colorDepth;
-
-	uint8_t					_initError;
-	uint8_t					_sleep;
 
 	uint8_t					_currentMode;
 
-	uint8_t					_rotation;
-	boolean					_portrait;
 
 	uint16_t				_defaultBgColor;
 	uint16_t				_defaultFgColor;
 
 
-
+    SSD_ScreenConfig _screenConfig;
 
     // ================================ 
     #pragma region Inline methods defined in SSD_Core.ipp:
@@ -384,20 +363,16 @@ class SSD_13XX {
 
 	#endif
 
-    inline void _startTransaction() { _spi.startTransaction(); };
-    inline void _closeTransaction() { _spi.deselectAndEndTransaction(); };
-    inline void _writedata16_cont(uint16_t data) { _spi.writeData16(data); };
-
     #pragma endregion
     // ================================
 
-    // Give text engine and graphics engine access to private methods here.
+    // Give text and graphics engines access to private methods here.
     friend class Text_Engine;
     friend class Graphics_Engine;
+    friend class SSD_ScreenConfig;
 };
 
 // Inline method definitions.
 #include "SSD_Core.ipp"
 
-#endif
 #endif

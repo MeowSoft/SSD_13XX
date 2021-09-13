@@ -18,8 +18,6 @@
 
 #include "SSD_13XX.h"
 
-#include "Spi/Spi_Instance.h"
-
 #include "SSD_Util.h"
 
 
@@ -47,8 +45,10 @@ draw LINE
 */
 void SSD_13XX::drawLine(int16_t x0, int16_t y0,int16_t x1, int16_t y1, uint16_t color)
 {
-	if (x1 >= _width) x1 = _width-1;
-	if (y1 >= _height) y1 = _height-1;
+    int16_t w = _screenConfig.getWidth();
+    int16_t h = _screenConfig.getHeight();
+	if (x1 >= w) x1 = w-1;
+	if (y1 >= h) y1 = h-1;
 	_spi.startTransaction();
 	_drawLine(x0,y0,x1,y1,color/*,200*/);
 	_spi.deselectAndEndTransaction();
@@ -66,8 +66,8 @@ void SSD_13XX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 	if (((y + h) - 1) >= _height) h = _height - y;
 	h = sizeCheck(y,h,_height);
 	*/
-	if (x >= _width-1) return;
-	if (y >= _height-1) return;
+	if (x >= _screenConfig.getWidth()-1) return;
+	if (y >= _screenConfig.getHeight()-1) return;
 	_spi.startTransaction();
 	_drawVerticalLine(x,y,h,color);
 	_spi.deselectAndEndTransaction();
@@ -86,8 +86,8 @@ void SSD_13XX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	if (((x + w) - 1) >= _width)  w = _width - x;
 	w = sizeCheck(x,w,_width);
 	*/
-	if (x >= _width-1) return;
-	if (y >= _height-1) return;
+	if (x >= _screenConfig.getWidth()-1) return;
+	if (y >= _screenConfig.getHeight()-1) return;
 	_spi.startTransaction();
 	_drawHorizontalLine(x,y,w,color);
 	_spi.deselectAndEndTransaction();
@@ -129,8 +129,8 @@ void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col
 //+++++++++OK
 void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled)
 {
-	if (x + w >= _width) return;
-	if (y + h >= _height) return;
+	if (x + w >= _screenConfig.getWidth()) return;
+	if (y + h >= _screenConfig.getHeight()) return;
 	_spi.startTransaction();
 	_drawRectangle(x, y, w, h, color1,color2,filled);
 	_spi.deselectAndEndTransaction();
@@ -144,33 +144,11 @@ void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col
 **********************************************************/
 
 
-#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-	SSD_13XX::SSD_13XX(SPI_Instance spi, const uint8_t rstpin)
-	{
-        Serial.println("MINE");
-		_rst  = rstpin;
-        _spi = spi;
+SSD_13XX::SSD_13XX(SPI_Driver spi, const uint8_t rstPin) {
+    _rstPin  = rstPin;
+    _spi = spi;
+}
 
-	}
-#elif defined(__MKL26Z64__) //Teensy LC
-	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin,const uint8_t mosi,const uint8_t sclk)
-	{
-		Serial.println("MINE");
-		_rst  = rstpin;
-        _spi = SPI_Instance();
-
-        _spi.InitSpi(mosi, sclk, cspin, dcpin, CMD_NOP, true);
-	}
-#else //All the rest
-	SSD_13XX::SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin)
-	{
-        Serial.println("MINE");
-		_rst  = rstpin;
-        _spi = SPI_Instance();
-
-        _spi.InitSpi(cspin, dcpin, true);
-	}
-#endif
 
 /*********************************************************
 ************** Var init and SPI preparation **************
@@ -178,24 +156,22 @@ void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t col
 void SSD_13XX::begin()
 {
 //initialize Vars
-	_remapReg		= 0;
-	_currentMode	= 0b00000000;
-	_portrait 		= false;
+_screenConfig.init();
 
-	_initError 		= 0b00000000;
+	_currentMode	= 0b00000000;
 
 	setColorDepth(SSD_COLORDEPTH);
 	setColorOrder(SSD_RGBORDER);
 	_defaultBgColor = _SSD_DEF_BACKGROUND;
 	_defaultFgColor = _SSD_DEF_FOREGROUND;
 
-	if (_rst != 255) {
-		pinMode(_rst, OUTPUT);
-		digitalWrite(_rst, HIGH);
+	if (_rstPin != 255) {
+		pinMode(_rstPin, OUTPUT);
+		digitalWrite(_rstPin, HIGH);
 		delay(10);
-		digitalWrite(_rst, LOW);
+		digitalWrite(_rstPin, LOW);
 		delay(10);
-		digitalWrite(_rst, HIGH);
+		digitalWrite(_rstPin, HIGH);
 		delay(10);
 	}
 	/* -----------------------------------------------------------
@@ -204,11 +180,7 @@ void SSD_13XX::begin()
 	delay(30);
 	_spi.startTransaction();
 	#if defined(_SSD_1331_96X64_H) || defined(_SSD_1332_96X64_H)
-		if (SSD_COMSPLIT == 1){
-			_remapReg |= ((1 << 5));
-		} else {
-			_remapReg |= ((0 << 5));
-		}
+		
 		_spi.writeCommand8(CMD_DISPLAYOFF);
 		_writeRegister(CMD_CLOCKDIV,SSD_CLOCKDIV);
 		_writeRegister(CMD_SETMULTIPLEX,SSD_SETMULTIPLEX);
@@ -316,18 +288,6 @@ void SSD_13XX::setBrightness(uint8_t brightness)
 /*********************************************************
 ***************** Basic display commands *****************
 **********************************************************/
-/*
-A simple helper to detect some error in initialization.
-Since this library doesn't use MISO it can detect only
-very basic errors:
-0b00000001: Wrong MOSI,SCLK pin (only for some MCU's)
-0b00000010: Wrong CS pin (only for some MCU's)
-0b10000000: Display NOT supported (Only for multi-instances)
-*/
-uint8_t SSD_13XX::getErrorCode(void)
-{
-	return _initError;
-}
 
 /*
 This change the mode of the display as:
@@ -445,7 +405,7 @@ uint8_t SSD_13XX::getMode(void)
 void SSD_13XX::copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16_t dx, int16_t dy)
 {
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_portrait){//not tested yet
+	if (_screenConfig.isPortrait()){//not tested yet
 		swapVals(sx0,sy0);
 		swapVals(sx1,sy1);
 		swapVals(dx,dy);
@@ -465,7 +425,7 @@ void SSD_13XX::copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16
 void SSD_13XX::dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_portrait){//not tested yet
+	if (_screenConfig.isPortrait()){//not tested yet
 		swapVals(x0,y0);
 		swapVals(x1,y1);
 	}
@@ -482,7 +442,7 @@ void SSD_13XX::dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 void SSD_13XX::moveArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
 	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_portrait){//not tested yet
+	if (_screenConfig.isPortrait()){//not tested yet
 		swapVals(x0,y0);
 		swapVals(x1,y1);
 	}
@@ -498,112 +458,44 @@ void SSD_13XX::moveArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 
 uint8_t SSD_13XX::getRotation(void)
 {
-	return _rotation;
+	return _screenConfig.getRotation();
 }
 
 void SSD_13XX::setColorDepth(uint8_t depth)
 {
-	if (depth == 16){
-		_colorDepth = 16;
-		_remapReg |= ((0 << 7) | (1 << 6));
-	#if defined(SSD_1351_REGISTERS_H)
-	} else if (depth == 18) {
-		_colorDepth = 16;
-		_remapReg |= ((1 << 7) | (0 << 6));
-	#endif
-	} else {
-		_colorDepth = 8;
-		_remapReg |= ((0 << 7) | (0 << 6));
-	}
+	_screenConfig.setColorDepth(depth);
 }
 
 void SSD_13XX::setColorOrder(bool order)
 {
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
-		_remapReg |= ((order << 2));
-	#endif
+	_screenConfig.setColorOrder(order);
 }
 
 //+++++++++OK
 void SSD_13XX::setRotation(uint8_t m)
 {
-	_rotation = m % 4; // can't be higher than 3
-	_portrait = false;
-	_remapReg &= ~(0x1B);//clear bit 0,1,3,4
-	_width  = SSD_WIDTH;
-	_height = SSD_HEIGHT;
-	if (_rotation == 0){
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1));//bit 4 & 1
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 4));//bit 4
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 4));//(1)
-		#else
-			//TODO
-		#endif
-	} else if (_rotation == 1){
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 0));//bit 4 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//bit 4 & 1 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//(2)
-			swapVals(_width,_height);
-			_portrait = true;
-		#else
-			//TODO
-		#endif
-	} else if (_rotation == 2){
-		#if defined(SSD_1331_REGISTERS_H)
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 1));//bit 1
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 1));//(3)
-		#else
-			//TODO
-		#endif
-	} else {
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 1) | (1 << 0));//bit 1 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 0));//bit 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 0));//(0)
-			swapVals(_width,_height);
-			_portrait = true;
-		#else
-			//TODO
-		#endif
-	}
-	//_cursorX = 0; _cursorY = 0;//always reset cursor
-	_spi.startTransaction();
-		_setAddressWindow(0,0,_height-1,_width-1,false);
+    _screenConfig.setRotation(m);
+
+    _spi.startTransaction();
+		_setAddressWindow(0,0,_screenConfig.getHeight()-1,_screenConfig.getWidth()-1,false);
 		_spi.writeCommand8(CMD_SETREMAP);//set remap
 		#if defined(_SSD_USECMDASDATA)
-			_spi.writeCommand8AndDeselect(_remapReg);
+			_spi.writeCommand8AndDeselect(_screenConfig.getRemap());
 		#else
-			_spi.writeData8AndDeselect(_remapReg);
+			_spi.writeData8AndDeselect(_screenConfig.getRemap());
 		#endif
-	_spi.endTransaction();
+	_spi.deselectAndEndTransaction();
+
 }
 
 //+++++++++OK
 int16_t SSD_13XX::width(void) const {
-	return _width;
+	return _screenConfig.getWidth();
 }
 
 //+++++++++OK
 int16_t SSD_13XX::height(void) const {
-	return _height;
+	return _screenConfig.getHeight();
 }
 
 //+++++++++OK
@@ -859,7 +751,7 @@ void SSD_13XX::_drawLine(
 		SSD_Util::_convertColor(color, r, g, b);
 
         // Draw line.
-        if (_portrait){
+        if (_screenConfig.isPortrait()){
             swapVals(x0,y0);
             swapVals(x1,y1);
         }

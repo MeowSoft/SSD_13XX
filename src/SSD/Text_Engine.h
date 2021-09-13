@@ -106,6 +106,9 @@ int						_spaceCharWidth;
 void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
 void 		fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
 void 		setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix = true);
+
+    void startTransaction();
+    void closeTransaction();
 };
 
 #endif

@@ -4,18 +4,16 @@ bool Text_Engine::boundaryCheck(int16_t xw,int16_t yh) {
     return !ssd_->_checkBounds(xw, yh);
 }
 int16_t Text_Engine::getHeight() {
-    return ssd_->_height;
+    return ssd_->_screenConfig.getHeight();
 }
 int16_t Text_Engine::getWidth() {
-    return ssd_->_width;
+    return ssd_->_screenConfig.getWidth();
 }
 bool Text_Engine::isPortrait() {
-    return ssd_->_portrait;
+    return ssd_->_screenConfig.isPortrait();
 }
 void Text_Engine::setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
-    ssd_->_startTransaction();
-    ssd_->_setAddressWindow(x0, y0, x1, y1);
-    ssd_->_closeTransaction();
+    ssd_->setAddressWindow(x0, y0, x1, y1);
 }
 void Text_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled) {
     ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);
@@ -26,7 +24,12 @@ void Text_Engine::fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint
 void Text_Engine::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix) {
     ssd_->_setAddressWindow(x0, y0, x1, y1, rotFix);
 }
-
+void Text_Engine::startTransaction() {
+    ssd_->_spi.startTransaction();
+}
+void Text_Engine::closeTransaction() {
+    ssd_->_spi.deselectAndEndTransaction();
+}
 
 void Text_Engine::begin(SSD_13XX* ssd) {
     ssd_ = ssd;
@@ -243,7 +246,7 @@ void Text_Engine::_textWrite(const char* buffer, uint16_t len)
 		_centerText = 0;//reset
 	}//end center flag
 	//Loop trough every char and write them one by one until end (or a break!)
-	ssd_->_startTransaction();
+	startTransaction();
 	for (i=0;i<len;i++){
 		if (_renderSingleChar(buffer[i])) {
 			//aha! in that case I have to break out!
@@ -255,7 +258,7 @@ void Text_Engine::_textWrite(const char* buffer, uint16_t len)
 	#endif
 	*/
 	}//end loop
-	ssd_->_closeTransaction();
+	closeTransaction();
 }
 
 /*
@@ -568,7 +571,7 @@ void Text_Engine::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,
 	if (scale < 1) scale = 1;
 	if ((x + iWidth) * scale >= getWidth() || (y + iHeight) * scale >= getHeight()) return;//cannot be
 
-	ssd_->_startTransaction();
+	startTransaction();
 	//LGPO Rendering (uncomp)
 	if (!isPortrait()){
 		setAddrWindow_cont(x,y,iWidth+x,iHeight+y,false);
@@ -604,5 +607,5 @@ void Text_Engine::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,
 					inverse
 	);
 	}
-	ssd_->_closeTransaction();
+	closeTransaction();
 }

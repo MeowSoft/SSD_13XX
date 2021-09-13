@@ -101,7 +101,7 @@ void benchmark_setup() {
     #ifdef USE_MINE
 
     // Create SPI instance.
-    SPI_Instance spi = SPI_Instance();
+    SPI_Driver spi = SPI_Driver();
     spi.validatePins(SPI_PINS, log);
     spi.init(SPI_INIT_ARGS);
 

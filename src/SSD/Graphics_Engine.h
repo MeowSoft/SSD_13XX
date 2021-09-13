@@ -65,6 +65,9 @@ void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float 
     void 		setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix = true);
     uint16_t getDefaultBackground();
     uint16_t getDefaultForeground();
+    void startTransaction();
+    void closeTransaction();
+    void writedata16_cont(uint16_t d);
 };
 
 #endif

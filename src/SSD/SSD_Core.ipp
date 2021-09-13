@@ -17,8 +17,8 @@ PREFIX bool SSD_13XX::_checkBounds(
     int16_t x,
     int16_t y
 ) {
-    bool xInBounds = (x < _width);
-    bool yInBounds = (y < _height);
+    bool xInBounds = (x < _screenConfig.getWidth());
+    bool yInBounds = (y < _screenConfig.getHeight());
     return (xInBounds && yInBounds);
 }
 
@@ -29,7 +29,7 @@ PREFIX void SSD_13XX::_setAddressWindow(
     uint16_t columnEnd,
     bool checkRotation
 ) {
-    if (checkRotation && _portrait){
+    if (checkRotation && _screenConfig.isPortrait()){
         swapVals(rowStart, columnStart);
         swapVals(rowEnd, columnEnd);
     }
@@ -100,13 +100,13 @@ PREFIX void SSD_13XX::_drawRectangle(
     }
 
     // Otherwise, swap x and y for portrait mode.
-    if (_portrait){
+    if (_screenConfig.isPortrait()){
         swapVals(x, y);
         swapVals(w, h);
     }
 
     // If rectangle is out of screen bounds then bail.
-	if (x >= _width || y >= _height) return;
+	if (x >= _screenConfig.getWidth() || y >= _screenConfig.getHeight()) return;
 
 	// Get draw delay.
     int dly = _calculateDelay(w, h, CMD_DLY_FILL);
