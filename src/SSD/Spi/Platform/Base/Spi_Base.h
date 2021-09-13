@@ -1,7 +1,7 @@
 #ifndef SPI_BASE_H
 #define SPI_BASE_H
 
-#include "../../Spi_Interface.h"
+#include "../Spi_Interface.h"
 
 NAMESPACE_SPI
 
@@ -15,30 +15,31 @@ class Spi_Base : public Spi_Interface {
 
         virtual void startTransaction(void) = 0;
         virtual void endTransaction(void) = 0;
-        virtual void _pushColors_cont(uint16_t data,uint32_t times) = 0;
-
-        void writecommand_cont(const uint8_t c);
-        void writecommand16_cont(uint16_t c);
-        void writedata8_cont(uint8_t c);
-        void writedata16_cont(uint16_t d);
-        void writecommand_last(const uint8_t c);
-        void writedata8_last(uint8_t c);
-        void writedata16_last(uint16_t d);
-        void closeTransaction(void);
+        virtual void writeData16Multi(uint16_t data, uint32_t times) = 0;
 
         #if !defined (SPI_HAS_TRANSACTION)
-        virtual void SetBitrate(uint32_t rate);
+        virtual void setBitrate(uint32_t rate);
         #endif
+
+        void writeCommand8(const uint8_t c);
+        void writeCommand16(uint16_t c);
+        void writeData8(uint8_t c);
+        void writeData16(uint16_t d);
+        void writeCommand8AndDeselect(const uint8_t c);
+        void writeData8AndDeselect(uint8_t c);
+        void writeData16AndDeselect(uint16_t d);
+        void deselectAndEndTransaction(void);
 
     protected:
 
-        virtual void enableDataStream() = 0;
-        virtual void enableCommandStream() = 0;
-        virtual void disableCS() = 0;
-        virtual void spiwrite(uint8_t c) = 0;
-        virtual void spiwrite16(uint16_t d) = 0;
+        virtual void _selectData() = 0;
+        virtual void _selectCommand() = 0;
+        virtual void _deselect() = 0;
+        virtual void _write8(uint8_t c) = 0;
+        virtual void _write16(uint16_t d) = 0;
 };
 
+// Inline method definitions.
 #include "Spi_Base.ipp"
 
 NAMESPACE_SPI_END

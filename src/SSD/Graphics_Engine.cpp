@@ -9,31 +9,31 @@ int16_t Graphics_Engine::getWidth() {
     return ssd_->_width;
 }
 void Graphics_Engine::drawFastVLine_cont(int16_t x, int16_t y, int16_t h, uint16_t color) {
-    ssd_->drawFastVLine_cont(x, y, h, color);
+    ssd_->_drawVerticalLine(x, y, h, color);
 }
 void Graphics_Engine::drawFastHLine_cont(int16_t x, int16_t y, int16_t w, uint16_t color) {
-    ssd_->drawFastHLine_cont(x, y, w, color);
+    ssd_->_drawHorizontalLine(x, y, w, color);
 }
 void Graphics_Engine::drawPixel_cont(int16_t x, int16_t y, uint16_t color) {
-    ssd_->drawPixel_cont(x, y, color);
+    ssd_->_drawPixel(x, y, color);
 }
 void Graphics_Engine::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color) {
     ssd_->fillRect(x, y, w, h, color);
 }
 void Graphics_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled) {
-    ssd_->drawRect_cont(x, y, w, h, color1, color2, filled);
+    ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);
 }
 void Graphics_Engine::drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) {
-    ssd_->drawLine_cont(x0, y0, x1, y1, color);
+    ssd_->_drawLine(x0, y0, x1, y1, color);
 }
 bool Graphics_Engine::boundaryCheck(int16_t xw,int16_t yh) {
-    return ssd_->boundaryCheck(xw, yh);
+    return !ssd_->_checkBounds(xw, yh);
 }
 bool Graphics_Engine::isPortrait() {
     return ssd_->_portrait;
 }
 void Graphics_Engine::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix) {
-    ssd_->setAddrWindow_cont(x0, y0, x1, y1, rotFix);
+    ssd_->_setAddressWindow(x0, y0, x1, y1, rotFix);
 }
 uint16_t Graphics_Engine::getDefaultBackground() {
     return ssd_->_defaultBgColor;
@@ -131,7 +131,7 @@ void Graphics_Engine::drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int1
 		if (endAngle == 360) eslope = -1000000;
 		ir2 = (radius - thickness) * (radius - thickness);
 		or2 = radius * radius;
-		startTransaction();
+		ssd_->_startTransaction();
 		for (x = xmin; x <= xmax; x++) {
 			y1StartFound 	= false;
 			y2StartFound 	= false;
@@ -207,7 +207,7 @@ void Graphics_Engine::drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int1
 				yield();
 			#endif
 		}
-		closeTransaction();
+		ssd_->_closeTransaction();
 	}
 }
 
@@ -238,7 +238,7 @@ void Graphics_Engine::drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t 
     ellipseError = 0;
     stoppingX = (twoBSquare * radiusW);
     stoppingY = 0;
-	startTransaction();
+	ssd_->_startTransaction();
     while (stoppingX >= stoppingY) {
 		plot4points_cont(cx,cy,x,y,color);
 		y++;
@@ -278,7 +278,7 @@ void Graphics_Engine::drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t 
 			yield();
 		#endif
     }
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 //fast
@@ -391,7 +391,7 @@ void Graphics_Engine::drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t 
 	int16_t ddF_y = -2 * radius;
 	int16_t xrel = 0;
 	int16_t yrel = radius;
-	startTransaction();
+	ssd_->_startTransaction();
 	drawPixel_cont(x  , y+radius, color);
 	drawPixel_cont(x  , y-radius, color);
 	drawPixel_cont(x+radius, y  , color);
@@ -416,16 +416,16 @@ void Graphics_Engine::drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t 
 		drawPixel_cont(x + yrel, y - xrel, color);
 		drawPixel_cont(x - yrel, y - xrel, color);
 	}
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 void Graphics_Engine::fillCircle(int16_t x, int16_t y, int16_t radius,uint16_t color)
 {
 	if (x+(radius) >= getWidth() || y+(radius) >= getHeight()) return;//radius*2
-	startTransaction();//open SPI comm
+	ssd_->_startTransaction();//open SPI comm
 	drawFastVLine_cont(x, y-radius, (2*radius)+1, color);
 	fillCircle_cont_helper(x, y, radius, 3, 0, color);
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 
@@ -434,7 +434,7 @@ void Graphics_Engine::drawRoundRect(int16_t x, int16_t y, int16_t w,int16_t h, i
 {
 	if (x+w >= getWidth() || y+h > getHeight()) return;
 	//if (x+w-radius-1 < 0 || y+h-radius-1 < 0) return;
-	startTransaction();
+	ssd_->_startTransaction();
 	drawFastHLine_cont(x+radius  , y    	 , w-2*radius, color); // Top
 	drawFastHLine_cont(x+radius  , y+h-1	 , w-2*radius, color); // Bottom
 	drawFastVLine_cont(x    	 , y+radius  , h-2*radius, color); // Left
@@ -444,7 +444,7 @@ void Graphics_Engine::drawRoundRect(int16_t x, int16_t y, int16_t w,int16_t h, i
 	drawCircle_cont_helper(x+w-radius-1, y+radius    , radius, 2, color);
 	drawCircle_cont_helper(x+w-radius-1, y+h-radius-1, radius, 4, color);
 	drawCircle_cont_helper(x+radius    , y+h-radius-1, radius, 8, color);
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 
@@ -456,33 +456,33 @@ void Graphics_Engine::fillRoundRect(int16_t x, int16_t y, int16_t w,int16_t h, i
 		fillRect(x,y,w,h,color);
 		return;
 	}
-	startTransaction();
+	ssd_->_startTransaction();
 	drawRect_cont(x+radius, y, w-2*radius, h, color, color,1);
 	//fillRect_cont(x+radius, y, w-2*radius, h, color, color);
 	fillCircle_cont_helper(x+w-radius-1, y+radius, radius, 1, h-2*radius-1, color);
 	fillCircle_cont_helper(x+radius    , y+radius, radius, 2, h-2*radius-1, color);
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 
 void Graphics_Engine::drawQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2,int16_t x3, int16_t y3, uint16_t color)
 {
-	startTransaction();//open SPI comm
+	ssd_->_startTransaction();//open SPI comm
 	drawLine_cont(x0, y0, x1, y1, color/*,20*/);//low 1
 	drawLine_cont(x1, y1, x2, y2, color/*,20*/);//high 1
 	drawLine_cont(x2, y2, x3, y3, color/*,20*/);//high 2
 	drawLine_cont(x3, y3, x0, y0, color/*,20*/);//low 2
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 
 void Graphics_Engine::fillQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color,bool triangled)
 {
-	startTransaction();//open SPI comm
+	ssd_->_startTransaction();//open SPI comm
     fillTriangle_cont(x0,y0,x1,y1,x2,y2,color);
 	if (triangled) fillTriangle_cont(x2, y2, x3, y3, x0, y0, color);
     fillTriangle_cont(x1,y1,x2,y2,x3,y3,color);
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 void Graphics_Engine::drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t diameter, float rot, uint16_t color)
@@ -491,7 +491,7 @@ void Graphics_Engine::drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t d
 	const float dtr = (PI/180.0) + PI;
 	float rads = 360.0 / sides;//points spacd equally
 	uint8_t i;
-	startTransaction();
+	ssd_->_startTransaction();
 	for (i = 0; i < sides; i++) {
 		drawLine_cont(
 			x + (sin((i*rads + rot) * dtr) * diameter),
@@ -501,7 +501,7 @@ void Graphics_Engine::drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t d
 			color//,20
 			);
 	}
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 void Graphics_Engine::drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
@@ -516,32 +516,32 @@ void Graphics_Engine::drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint1
 
 	if (w < x) {n = w; w = x; x = n;}
 	if (h < y) {n = h; h = y; y = n;}
-	startTransaction();
+	ssd_->_startTransaction();
 	for (m = y; m <= h; m += 2) {
 		for (n = x; n <= w; n += 2) {
 			drawPixel_cont(n, m, color);
 		}
 	}
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 void Graphics_Engine::drawTriangle(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color)
 {
 	if (x0 > getWidth() || x1 > getWidth() || x2 > getWidth()) return;
 	if (y0 > getHeight() || y1 > getHeight() || y2 > getHeight()) return;
-	startTransaction();
+	ssd_->_startTransaction();
 	drawLine_cont(x0, y0, x1, y1, color/*,800*/);
 	drawLine_cont(x1, y1, x2, y2, color/*,800*/);
 	drawLine_cont(x2, y2, x0, y0, color/*,800*/);
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 //85% fast
 void Graphics_Engine::fillTriangle(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color)
 {
-	startTransaction();
+	ssd_->_startTransaction();
 	fillTriangle_cont(x0,y0,x1,y1,x2,y2,color);//
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 void Graphics_Engine::fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color)
@@ -622,7 +622,7 @@ void Graphics_Engine::fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16
 void Graphics_Engine::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, uint16_t color,int offset)
 {
 
-    startTransaction();
+    ssd_->_startTransaction();
 	if (length < 2) {//NEW
 		drawPixel_cont(x,y,color);
 	} else {
@@ -633,7 +633,7 @@ void Graphics_Engine::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t len
 		y + (length * SSD_Util::sinDeg_helper(angle + offset)),
 		color);
 	}
-    closeTransaction();
+    ssd_->_closeTransaction();
 }
 
 /**************************************************************************/
@@ -652,7 +652,7 @@ void Graphics_Engine::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t len
 void Graphics_Engine::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uint8_t length, uint16_t color,int offset)
 {
 
-    startTransaction();
+    ssd_->_startTransaction();
 	if (start - length < 2) {//NEW
 		drawPixel_cont(x,y,color);
 	} else {
@@ -664,7 +664,7 @@ void Graphics_Engine::drawLineAngle(int16_t x, int16_t y, int angle, uint8_t sta
 		color);
 	}
 
-    closeTransaction();
+    ssd_->_closeTransaction();
 }
 
 /**************************************************************************/
@@ -818,7 +818,7 @@ void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const e
 
 	if (x + iWidth >= getWidth() || y + iHeight >= getHeight()) return;//cannot be
 
-	startTransaction();
+	ssd_->_startTransaction();
 	setAddrWindow_cont(x,y,iWidth+x,iHeight+y,false);
 
 	do {
@@ -842,7 +842,7 @@ void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const e
 		}
 
 		if (!skip) {
-			writedata16_cont(color);
+			ssd_->_writedata16_cont(color);
 		} else {
 			setAddrWindow_cont(x+currentX,y+currentY,(iWidth+x),(iHeight+y),false);//constrain window
 			skip = false;
@@ -858,7 +858,7 @@ void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const e
 		px++;
 	} while (--datalen > 0);
 
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 
@@ -870,10 +870,10 @@ void Graphics_Engine::drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int
 	for (j = 0; j < h; j++) {
 		for (i = 0; i < w; i++ ) {
 			if (pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
-                startTransaction();
+                ssd_->_startTransaction();
                  drawPixel_cont(x + i, y + j, color);
 
-	closeTransaction();
+	ssd_->_closeTransaction();
             }
 		}
 		#if defined(ESP8266)
@@ -888,14 +888,14 @@ void Graphics_Engine::drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int
 	int16_t byteWidth = (w + 7) / 8;
 	for (j = 0; j < h; j++) {
 		for (i = 0; i < w; i++ ) {
-            startTransaction();
+            ssd_->_startTransaction();
 			if (pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7))) {
 				drawPixel_cont(x + i, y + j, color);
 			} else {
 				drawPixel_cont(x + i, y + j, bg);
 		    }
 
-	closeTransaction();
+	ssd_->_closeTransaction();
     }
 	#if defined(ESP8266)
 		yield();

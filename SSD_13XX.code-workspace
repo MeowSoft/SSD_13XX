@@ -6,7 +6,9 @@
     ],
     "settings": {
         "files.associations": {
-            "*.ipp": "cpp"
+            "*.ipp": "cpp",
+            "*.tcc": "cpp",
+            "string": "cpp"
         }
     }
 }

@@ -11,50 +11,50 @@
 
 USE_NAMESPACE_SPI
 
-void Spi_ESP8266::InitSpi(
-    const uint8_t cs,
-    const uint8_t dc,
-    bool initSpi
+void Spi_ESP8266::init(
+    const uint8_t csPin,
+    const uint8_t dcPin
 ) {
 
     #if defined(SPI_HAS_TRANSACTION)
-    spiSettings_ = SPISettings(MAX_SPI_SPEED, MSBFIRST, SPI_MODE0);
+    _spiSettings = SPISettings(MAX_SPI_SPEED, MSBFIRST, SPI_MODE0);
     #endif
 
-    _dc = dc;
-    _cs = cs;
+    _csPin = csPin;
+    _dcPin = dcPin;
 
-    pinMode(_dc, OUTPUT);
-	pinMode(_cs, OUTPUT);
-	if (initSpi) SPI.begin();
-	#if !defined(SPI_HAS_TRANSACTION)
-		if (initSpi){
-			SPI.setClockDivider(4);
-			SPI.setBitOrder(MSBFIRST);
-			SPI.setDataMode(SPI_MODE0);
-		}
-	#endif
+    pinMode(_csPin, OUTPUT);
+	pinMode(_dcPin, OUTPUT);
+
+    SPI.begin();
+
+    #if !defined(SPI_HAS_TRANSACTION)
+    SPI.setClockDivider(4);
+    SPI.setBitOrder(MSBFIRST);
+    SPI.setDataMode(SPI_MODE0);
+    #endif
+
 	#if !defined(ESP8266_FAST_CS)
-		digitalWrite(_cs,HIGH);
+	digitalWrite(_csPin, HIGH);
 	#else
-		GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, _pinRegister(_cs));//H
+	GPIO_REG_WRITE(GPIO_OUT_W1TS_ADDRESS, _pinRegister(_csPin));
 	#endif
-	enableDataStream();
+
+	_selectData();
 }
 
 #if !defined (SPI_HAS_TRANSACTION)
-	void Spi_ESP8266::setBitrate(uint32_t n)
-	{
-		if (n >= 8000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV2);
-		} else if (n >= 4000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV4);
-		} else if (n >= 2000000) {
-			SPI.setClockDivider(SPI_CLOCK_DIV8);
-		} else {
-			SPI.setClockDivider(SPI_CLOCK_DIV16);
-		}
-	}
-	#endif
+void Spi_ESP8266::setBitrate(uint32_t n) {
+    if (n >= 8000000) {
+        SPI.setClockDivider(SPI_CLOCK_DIV2);
+    } else if (n >= 4000000) {
+        SPI.setClockDivider(SPI_CLOCK_DIV4);
+    } else if (n >= 2000000) {
+        SPI.setClockDivider(SPI_CLOCK_DIV8);
+    } else {
+        SPI.setClockDivider(SPI_CLOCK_DIV16);
+    }
+}
+#endif
 
 #endif

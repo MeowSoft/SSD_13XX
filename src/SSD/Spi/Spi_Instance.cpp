@@ -1,103 +1,153 @@
 #include "Spi_Instance.h"
 
-// Teensy 3.x:
-#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-
 USE_NAMESPACE_SPI
 
-Spi_Teensy_3x Spi_ = Spi_Teensy_3x();
-  
-static uint8_t initError;
-
-void InitSpi(
-    const uint8_t sdo,
-    const uint8_t sck,
-    const uint8_t cs,
-    const uint8_t cd,
-    uint8_t nop,
-    bool initSpi
-) {
-    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, &initError); 
-}
-
+// ====================================
 // ARM (Due):
-#elif defined(__SAM3X8E__)
+// ====================================
+#if defined(__SAM3X8E__)
 
-USE_NAMESPACE_SPI
-
-Spi_Due Spi_ = Spi_Due();
-  
-void InitSpi(
-    const uint8_t cs,
-    const uint8_t cd,
-    bool initSpi
+bool SPI_Instance::validatePins(
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
 ) {
-    Spi_.InitSpi(cs, cd, initSpi); 
+    return true;
 }
 
-// AVR:
+void SPI_Instance::init(
+    const uint8_t csPin,
+    const uint8_t dcPin
+) {
+    Spi_ = Spi_Due();
+    Spi_.init(csPin, dcPin); 
+}
+
+// ====================================
+// AVR (Duemilanove):
+// ====================================
 #elif defined(__AVR__)
 
-USE_NAMESPACE_SPI
-
-Spi_AVR Spi_ = Spi_AVR();
-
-void InitSpi(
-    const uint8_t cs,
-    const uint8_t cd,
-    bool initSpi
+bool SPI_Instance::validatePins(
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
 ) {
-    Spi_.InitSpi(cs, cd, initSpi); 
+    return true;
 }
 
-// Teensy LC:
-#elif defined(__MKL26Z64__)
-
-USE_NAMESPACE_SPI
-
-Spi_Teensy_LC Spi_ = Spi_Teensy_LC();
-
-uint8_t initError;
-
-void InitSpi(
-    const uint8_t sdo,
-    const uint8_t sck,
-    const uint8_t cs,
-    const uint8_t cd,
-    uint8_t nop,
-    bool initSpi
+void SPI_Instance::init(
+    const uint8_t csPin,
+    const uint8_t dcPin
 ) {
-    Spi_.InitSpi(sdo, sck, cs, cd, nop, initSpi, &initError); 
+    Spi_ = Spi_AVR();
+    Spi_.init(csPin, cdcPind); 
 }
 
+// ====================================
 // ESP8266:
+// ====================================
 #elif defined(ESP8266)
 
-USE_NAMESPACE_SPI
-
-Spi_ESP8266 Spi_ = Spi_ESP8266();
-
-void InitSpi(
-    const uint8_t cs,
-    const uint8_t cd,
-    bool initSpi
+bool SPI_Instance::validatePins(
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
 ) {
-    Spi_.InitSpi(cs, cd, initSpi); 
+    return true;
 }
 
+void SPI_Instance::init(
+    const uint8_t csPin,
+    const uint8_t dcPin
+) {
+    Spi_ = Spi_ESP8266();
+    Spi_.init(csPin, dcPin); 
+}
+
+// ====================================
+// Teensy LC:
+// ====================================
+#elif defined(__MKL26Z64__)
+
+bool SPI_Instance::validatePins(
+    const uint8_t sdoPin,
+    const uint8_t sckPin,
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
+) {
+    
+    const char* error;
+    if (!(Spi_.validatePins(sdoPin, sckPin, csPin, dcPin, error)) {
+        logger(error);
+        return false;
+    }
+
+    return true;
+}
+
+void SPI_Instance::init(
+    const uint8_t sdoPin, 
+    const uint8_t sckPin, 
+    const uint8_t csPin,
+    const uint8_t dcPin
+) {
+    Spi_ = Spi_Teensy_LC();
+    Spi_.init(sdoPin, sckPin, csPin, dcPin); 
+}
+
+// ====================================
+// Teensy 3.x:
+// ====================================
+#elif defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
+
+bool SPI_Instance::validatePins(
+    const uint8_t sdoPin,
+    const uint8_t sckPin,
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
+) {
+    const char* error = NULL;
+    if (!Spi_.validatePins(sdoPin, sckPin, csPin, dcPin, error)) {
+        logger(error);
+        return false;
+    }
+
+    return true;
+}
+
+void SPI_Instance::init(
+    const uint8_t sdoPin, 
+    const uint8_t sckPin, 
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    uint8_t nopCmd
+) {
+    Spi_ = Spi_Teensy_3x();
+    Spi_.init(sdoPin, sckPin, csPin, dcPin, nopCmd); 
+}
+
+// ====================================
 // All other platforms:
+// ====================================
 #else
 
-USE_NAMESPACE_SPI
-
-Spi_Legacy Spi_ = Spi_Legacy();
-
-void InitSpi(
-    const uint8_t cs,
-    const uint8_t cd,
-    bool initSpi
+bool SPI_Instance::validatePins(
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    LogMethod_t logger
 ) {
-    Spi_.InitSpi(cs, cd, initSpi); 
+    return true;
+}
+
+void SPI_Instance::init(
+    const uint8_t csPin,
+    const uint8_t dcPin
+) {
+    Spi_ = Spi_Legacy();
+    Spi_.init(csPin, dcPin); 
 }
 
 #endif

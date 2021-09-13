@@ -14,69 +14,70 @@
 
 USE_NAMESPACE_SPI
 
-void Spi_Teensy_LC::InitSpi(
-    const uint8_t sdo,
-    const uint8_t sck,
-    const uint8_t cs,
-    const uint8_t dc,
-    uint8_t nop,
-    bool initSpi,
-    uint8_t* errorResult
+bool Spi_Teensy_LC::validatePins(
+    const uint8_t sdoPin, 
+    const uint8_t sckPin, 
+    const uint8_t csPin,
+    const uint8_t dcPin,
+    const char* errorMessage
 ) {
-    // Init error result.
-    *errorResult = 0;
-
-    // If SPI pins aren't valid, then set error and bail.
-	if (!SPI1_PINS_VALID(sdo, sck) && !SPI0_PINS_VALID(sdo, sck)){
-		bitSet(*errorResult,0);
-		return;
+    if (!SPI1_PINS_VALID(sdoPin, sckPin) && !SPI0_PINS_VALID(sdoPin, sckPin)) {
+        errorMessage = "ERROR: sdo or sck are not valid SPI pins";
+        return false;
     }
 
+    if (!SPI.pinIsChipSelect(csPin, dcPin)) {
+        errorMessage = "ERROR: cs is not a valid SPI pin";
+        return false;
+    }
+
+    return true;
+}
+       
+void Spi_Teensy_LC::init(
+    const uint8_t sdoPin,
+    const uint8_t sckPin,
+    const uint8_t csPin,
+    const uint8_t dcPin
+) {
     // Select SPI instance to use.
-    _useSPI1 = SPI1_PINS_VALID(sdo, sck);
-    SPIClass* spi_ = _useSPI1 ? &SPI1 : &SPI;
-
-    // If cs pin is not valid, then set error and bail.
-    if (!spi_->pinIsChipSelect(cs)) {
-        bitSet(*errorResult, 1);
-        return;
-    }
+    _useSPI1 = SPI1_PINS_VALID(sdoPin, sckPin);
+    SPIClass* spi = _useSPI1 ? &SPI1 : &SPI;
 
     // Create SPI Settings.
     #if defined(SPI_HAS_TRANSACTION)
-    spiSettings_ = SPISettings(MAX_SPI_SPEED, MSBFIRST, SPI_MODE0);
+    _spiSettings = SPISettings(MAX_SPI_SPEED, MSBFIRST, SPI_MODE0);
     #endif
 
     // Set cs and dc pin modes.
-	pinMode(dc, OUTPUT);
-	pinMode(cs, OUTPUT);
+	pinMode(dcPin, OUTPUT);
+	pinMode(csPin, OUTPUT);
 
     // Set up SPI instance.
-    spi_->setMOSI(sdo);
-    spi_->setSCK(sck);
-    if (initSpi) spi_->begin();
+    spi->setMOSI(sdoPin);
+    spi->setSCK(sckPin);
+    spi->begin();
     
     // Set up vars for setting cs and dc signals.
 	#if defined(TEENSY_LC_FAST_PORT)
-		csportSet    	= portSetRegister(digitalPinToPort(cs));
-		csportClear     = portClearRegister(digitalPinToPort(cs));
-		cspinmask 		= digitalPinToBitMask(cs);
-		dcportSet       = portSetRegister(digitalPinToPort(dc));
-		dcportClear     = portClearRegister(digitalPinToPort(dc));
-		dcpinmask	    = digitalPinToBitMask(dc);
-		*csportSet 		= cspinmask;
+    _csPortSet = portSetRegister(digitalPinToPort(csPin));
+    _csPortClear = portClearRegister(digitalPinToPort(csPin));
+    _csPinMask = digitalPinToBitMask(csPin);
+    _dcPortSet = portSetRegister(digitalPinToPort(dcPin));
+    _dcPortClear = portClearRegister(digitalPinToPort(dcPin));
+    _dcPinMask = digitalPinToBitMask(dcPin);
+    *_csPortSet = _csPinMask;
 	#else
-        csPin = cs;
-        dcPin = dc;
-		digitalWriteFast(cs,HIGH);
+    _csPin = csPin;
+    _dcPin = dcPin;
+    digitalWriteFast(_csPin, HIGH);
 	#endif
 		
-    enableDataStream();
+    _selectData();
 }
 
 #if !defined (SPI_HAS_TRANSACTION)
-void Spi_Teensy_LC::setBitrate(uint32_t n)
-{
+void Spi_Teensy_LC::setBitrate(uint32_t n) {
     //nop
 }
 #endif

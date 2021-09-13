@@ -9,30 +9,30 @@
 #include "SSD/Graphics_Engine.h"
 #include "SSD/SSD_Util.h"
 
-#define _GetWidth oled_->width
-#define _GetHeight oled_->height
-#define _FillScreen oled_->fillScreen
-#define _DrawLine oled_->drawLine
-#define _DrawHLine oled_->drawFastHLine
-#define _DrawVLine oled_->drawFastVLine
-#define _DrawFilledRectangle oled_->fillRect
-#define _DrawRectangle oled_->drawRect
-#define _SetRotation oled_->setRotation
-#define _ChangeMode oled_->changeMode
+#define _GetWidth _oled->width
+#define _GetHeight _oled->height
+#define _FillScreen _oled->fillScreen
+#define _DrawLine _oled->drawLine
+#define _DrawHLine _oled->drawFastHLine
+#define _DrawVLine _oled->drawFastVLine
+#define _DrawFilledRectangle _oled->fillRect
+#define _DrawRectangle _oled->drawRect
+#define _SetRotation _oled->setRotation
+#define _ChangeMode _oled->changeMode
 
-#define _SetCursor texter_->setCursor
-#define _SetTextColor texter_->setTextColor
-#define _SetTextScale texter_->setTextScale
-#define _PrintText texter_->println
-#define _SetFont texter_->setFont
+#define _SetCursor _texter->setCursor
+#define _SetTextColor _texter->setTextColor
+#define _SetTextScale _texter->setTextScale
+#define _PrintText _texter->println
+#define _SetFont _texter->setFont
 
-#define _DrawArc graphics_->drawArc
-#define _FillCircle graphics_->fillCircle
-#define _DrawCircle graphics_->drawCircle
-#define _DrawTriangle graphics_->drawTriangle
-#define _FillTriangle graphics_->fillTriangle
-#define _DrawRoundRect graphics_->drawRoundRect
-#define _FillRoundRect graphics_->fillRoundRect
+#define _DrawArc _graphics->drawArc
+#define _FillCircle _graphics->fillCircle
+#define _DrawCircle _graphics->drawCircle
+#define _DrawTriangle _graphics->drawTriangle
+#define _FillTriangle _graphics->fillTriangle
+#define _DrawRoundRect _graphics->drawRoundRect
+#define _FillRoundRect _graphics->fillRoundRect
 
 #define _Color565 SSD_Util::Color565
 
@@ -40,32 +40,32 @@
 
 #include <_fonts/Terminal_9.c>
 
-#define _GetWidth oled_->width
-#define _GetHeight oled_->height
-#define _FillScreen oled_->fillScreen
-#define _DrawLine oled_->drawLine
-#define _DrawHLine oled_->drawFastHLine
-#define _DrawVLine oled_->drawFastVLine
-#define _DrawFilledRectangle oled_->fillRect
-#define _DrawRectangle oled_->drawRect
-#define _SetRotation oled_->setRotation
-#define _ChangeMode oled_->changeMode
+#define _GetWidth _oled->width
+#define _GetHeight _oled->height
+#define _FillScreen _oled->fillScreen
+#define _DrawLine _oled->drawLine
+#define _DrawHLine _oled->drawFastHLine
+#define _DrawVLine _oled->drawFastVLine
+#define _DrawFilledRectangle _oled->fillRect
+#define _DrawRectangle _oled->drawRect
+#define _SetRotation _oled->setRotation
+#define _ChangeMode _oled->changeMode
 
-#define _SetCursor oled_->setCursor
-#define _SetTextColor oled_->setTextColor
-#define _SetTextScale oled_->setTextScale
-#define _PrintText oled_->println
-#define _SetFont oled_->setFont
+#define _SetCursor _oled->setCursor
+#define _SetTextColor _oled->setTextColor
+#define _SetTextScale _oled->setTextScale
+#define _PrintText _oled->println
+#define _SetFont _oled->setFont
 
-#define _DrawArc oled_->drawArc
-#define _FillCircle oled_->fillCircle
-#define _DrawCircle oled_->drawCircle
-#define _DrawTriangle oled_->drawTriangle
-#define _FillTriangle oled_->fillTriangle
-#define _DrawRoundRect oled_->drawRoundRect
-#define _FillRoundRect oled_->fillRoundRect
+#define _DrawArc _oled->drawArc
+#define _FillCircle _oled->fillCircle
+#define _DrawCircle _oled->drawCircle
+#define _DrawTriangle _oled->drawTriangle
+#define _FillTriangle _oled->fillTriangle
+#define _DrawRoundRect _oled->drawRoundRect
+#define _FillRoundRect _oled->fillRoundRect
 
-#define _Color565 oled_->Color565
+#define _Color565 _oled->Color565
 
 #endif
 
@@ -85,22 +85,52 @@ void testRoundRects();
 void testFilledRoundRects();
 
 // The OLED.
-SSD_13XX* oled_;
+SSD_13XX* _oled;
 
 #ifdef USE_MINE
-Text_Engine* texter_;
-Graphics_Engine* graphics_;
+Text_Engine* _texter;
+Graphics_Engine* _graphics;
 #endif
 
+void log(const char* msg) {
+    SerialPrintf("%s", msg);
+}
+
 void benchmark_setup() {
+
+    #ifdef USE_MINE
+
+    // Create SPI instance.
+    SPI_Instance spi = SPI_Instance();
+    spi.validatePins(SPI_PINS, log);
+    spi.init(SPI_INIT_ARGS);
+
+    // Create OLED.
+    _oled = new SSD_13XX(spi, rstPin);
+    _oled->begin();
+
+    // Create text and graphics engines.
+    _texter = new Text_Engine();
+    _texter->begin(_oled);
+    _graphics = new Graphics_Engine();
+    _graphics->begin(_oled);
+
+    #else
     oled_ = new SSD_13XX(NEW_SSD_ARGS);
     oled_->begin(false);
-    #ifdef USE_MINE
-    texter_ = new Text_Engine();
-    texter_->begin(oled_);
-    graphics_ = new Graphics_Engine();
-    graphics_->begin(oled_);
     #endif
+}
+void benchmark_run2() {
+    #ifdef USE_MINE
+    SerialPrintf("Using library: mine\r\n");
+    #else
+    SerialPrintf("Using library: sumotoy\r\n");
+    #endif
+
+    _FillScreen(0x0000);
+    _ChangeMode(SSD_13XX_modes::NORMAL);
+    delay(1000);
+    testFilledRects(YELLOW, MAGENTA);
 }
 
 void benchmark_run() {

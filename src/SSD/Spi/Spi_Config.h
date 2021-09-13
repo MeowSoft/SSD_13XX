@@ -1,8 +1,10 @@
 #ifndef SPI_CONFIG_H
 #define SPI_CONFIG_H
 
-#include "../Util.h"
 #include <stdint.h>
+
+// Macro expander.
+#define __INLINE_EXPAND__(x) x
 
 // Namespace for SPI stuff.
 #define NAMESPACE_SPI_NAME SpiNamespace

@@ -1,19 +1,18 @@
-#ifndef SPI_LEGACY_H
-#define SPI_LEGACY_H
-
+#ifndef SPI_ARM_H
+#define SPI_ARM_H
 
 #include "../Base/Spi_Base.h"
 
-// Don't compile if the platform is implemented elsewhere.
-#if defined(PLATFORM_LEGACY)
+// Only compile for ARM (Due)
+#ifdef __SAM3X8E__
 
 NAMESPACE_SPI
 
 /**
  * @brief 
- * SPI implementation for legacy platforms.
+ * ARM implementation of the Spi_Interface.
  */
-class Spi_Legacy : public Spi_Base {
+class Spi_ARM : public Spi_Base {
 
     public:
 
@@ -32,9 +31,12 @@ class Spi_Legacy : public Spi_Base {
 
     private:
 
-		uint8_t _csPin;
-        uint8_t _dcPin;
-	
+        Pio* _csPort;
+        Pio* _dcPort;
+
+        uint32_t _csPinMask;
+        uint32_t _dcPinMask;
+
         SPISettings _spiSettings;
 
 		void _selectData(void);
@@ -45,7 +47,7 @@ class Spi_Legacy : public Spi_Base {
 };
 
 // Inline method definitions.
-#include "Spi_Legacy.ipp"
+#include "Spi_ARM.ipp"
 
 NAMESPACE_SPI_END
 

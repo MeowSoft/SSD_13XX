@@ -1,7 +1,7 @@
 #include "Text_Engine.h"
 
 bool Text_Engine::boundaryCheck(int16_t xw,int16_t yh) {
-    return ssd_->boundaryCheck(xw, yh);
+    return !ssd_->_checkBounds(xw, yh);
 }
 int16_t Text_Engine::getHeight() {
     return ssd_->_height;
@@ -12,20 +12,21 @@ int16_t Text_Engine::getWidth() {
 bool Text_Engine::isPortrait() {
     return ssd_->_portrait;
 }
-void Text_Engine::setArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
-    startTransaction();
-    ssd_->setAddrWindow_cont(x0, y0, x1, y1);
-    closeTransaction();
+void Text_Engine::setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
+    ssd_->_startTransaction();
+    ssd_->_setAddressWindow(x0, y0, x1, y1);
+    ssd_->_closeTransaction();
 }
 void Text_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled) {
-    ssd_->drawRect_cont(x, y, w, h, color1, color2, filled);
+    ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);
 }
 void Text_Engine::fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2) {
-    ssd_->fillRect_cont(x, y, w, h, color1, color2);
+    ssd_->_drawRectangleWithGradient(x, y, w, h, color1, color2);
 }
 void Text_Engine::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix) {
-    ssd_->setAddrWindow_cont(x0, y0, x1, y1, rotFix);
+    ssd_->_setAddressWindow(x0, y0, x1, y1, rotFix);
 }
+
 
 void Text_Engine::begin(SSD_13XX* ssd) {
     ssd_ = ssd;
@@ -36,11 +37,7 @@ void Text_Engine::begin(SSD_13XX* ssd) {
 	_charSpacing 	= 0;
 	_textWrap      	= true;
     _textForeground = _textBackground = 0xffff;//text transparent
-    #if defined(_SSD_DEF_FONT_PATH)
-		setFont(&_SSD_DEF_FONT_NAME);
-	#else
-		//setFont(&nullfont);
-	#endif
+    setInternalFont();
 }
 
 void Text_Engine::resetCursor() {
@@ -81,7 +78,7 @@ void Text_Engine::setCursor(int16_t x, int16_t y,enum SSD_13XX_centerMode c)
 	if (isPortrait()) swapVals(x,y);
 	_cursorX = x;
 	_cursorY = y;
-	setArea(0x0000,0x0000,x,y);
+	setAddressWindow(0x0000,0x0000,x,y);
 }
 
 void Text_Engine::getCursor(int16_t &x, int16_t &y)
@@ -205,11 +202,7 @@ void Text_Engine::setFont(const tFont *font)
 		#endif
 	} else {
 		//font malformed, doesn't have needed space parameter will return to system font
-		#if defined(_SSD_DEF_FONT_PATH)
-			setFont(&_SSD_DEF_FONT_NAME);
-		#else
-			//setFont(&nullfont);
-		#endif
+		setInternalFont();
 		return;
 	}
 }
@@ -250,7 +243,7 @@ void Text_Engine::_textWrite(const char* buffer, uint16_t len)
 		_centerText = 0;//reset
 	}//end center flag
 	//Loop trough every char and write them one by one until end (or a break!)
-	startTransaction();
+	ssd_->_startTransaction();
 	for (i=0;i<len;i++){
 		if (_renderSingleChar(buffer[i])) {
 			//aha! in that case I have to break out!
@@ -262,7 +255,7 @@ void Text_Engine::_textWrite(const char* buffer, uint16_t len)
 	#endif
 	*/
 	}//end loop
-	closeTransaction();
+	ssd_->_closeTransaction();
 }
 
 /*
@@ -575,7 +568,7 @@ void Text_Engine::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,
 	if (scale < 1) scale = 1;
 	if ((x + iWidth) * scale >= getWidth() || (y + iHeight) * scale >= getHeight()) return;//cannot be
 
-	startTransaction();
+	ssd_->_startTransaction();
 	//LGPO Rendering (uncomp)
 	if (!isPortrait()){
 		setAddrWindow_cont(x,y,iWidth+x,iHeight+y,false);
@@ -611,5 +604,5 @@ void Text_Engine::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,
 					inverse
 	);
 	}
-	closeTransaction();
+	ssd_->_closeTransaction();
 }

@@ -8,39 +8,42 @@
 
 NAMESPACE_SPI
 
+/**
+ * @brief 
+ * AVR implementation of the Spi_Interface.
+ */
 class Spi_AVR : public Spi_Base {
 
     public:
 
-        void InitSpi(
-            const uint8_t cs,
-            const uint8_t cd,
-            bool initSpi
+        void init(
+            const uint8_t csPin,
+            const uint8_t dcPin
         );
 
 		void startTransaction(void);
 		void endTransaction(void);
-        void _pushColors_cont(uint16_t data,uint32_t times);
+        void writeData16Multi(uint16_t data, uint32_t times);
 
         #if !defined (SPI_HAS_TRANSACTION)
-        void SetBitrate(uint32_t rate) override;
+        void setBitrate(uint32_t rate) override;
         #endif
 
     private:
 
-        volatile uint8_t 	 *csport_;
-        volatile uint8_t 	 *rsport_;
+        volatile uint8_t* _csPort;
+        volatile uint8_t* _dcPort;
 
-        uint8_t cspinmask_;
-        uint8_t dcpinmask_;
+        uint8_t _csPinMask;
+        uint8_t _dcPinMask;
 
-        SPISettings spiSettings_;
+        SPISettings _spiSettings;
 
-		void enableDataStream(void);
-		void enableCommandStream(void);
-		void disableCS(void);
-		void spiwrite(uint8_t c);
-		void spiwrite16(uint16_t c);
+		void _selectData(void);
+		void _selectCommand(void);
+		void _deselect(void);
+		void _write8(uint8_t c);
+		void _write16(uint16_t c);
 };
 
 // Inline method definitions.

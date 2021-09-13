@@ -82,6 +82,7 @@ Icon Render              1754
 #include <stdlib.h>
 // #include "Print.h"
 #include <SPI.h>
+#include "Spi/Spi_Instance.h"
 
 #include "_includes/_cpuCommons.h"
 #include "_includes/_common_16bit_colors.h"
@@ -110,15 +111,15 @@ class SSD_13XX {
 
  public:
 	#if defined(__MK20DX128__) || defined(__MK20DX256__) || defined(__MK64FX512__) || defined(__MK66FX1M0__)
-		SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin=255,const uint8_t mosi=11,const uint8_t sclk=13);
+		SSD_13XX(SPI_Instance spi, const uint8_t rstpin);
 	#elif defined(__MKL26Z64__)
 		SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin=255,const uint8_t mosi=11,const uint8_t sclk=13);
 	#else
 		SSD_13XX(const uint8_t cspin,const uint8_t dcpin,const uint8_t rstpin=255);
 	#endif
 				//avoidSPIinit=true set everithing but not call SPI.init()(you should init SPI before!)
-	void     	begin(bool avoidSPIinit=false);
-	void		setArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
+	void     	begin();
+	void		setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
 	void		changeMode(const enum SSD_13XX_modes m);
 	uint8_t 	getMode(void);
 	int16_t		height(void) const;
@@ -150,32 +151,6 @@ class SSD_13XX {
 	void		drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled);
 	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color);
 	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
-	// void		drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	// void		fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	// void		drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
-	// void		fillCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
-	// void		drawRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
-	// void		fillRoundRect(int16_t x, int16_t y, int16_t w, int16_t h,int16_t radius, uint16_t color);
-	// void		drawQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color);
-	// void		fillQuad(int16_t x0, int16_t y0,int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t x3, int16_t y3, uint16_t color,bool triangled=true);
-	// void		drawPolygon(int16_t x, int16_t y, uint8_t sides, int16_t diameter, float rot, uint16_t color);
-	// void		drawMesh(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-
-	// void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color) {
-	// 				if (start == 0 && end == _arcAngleMax) {
-	// 					drawArcHelper(cx, cy, radius, thickness, 0, _arcAngleMax, color);
-	// 				} else {
-	// 					drawArcHelper(cx, cy, radius, thickness, start + (_arcAngleOffset / (float)360)*_arcAngleMax, end + (_arcAngleOffset / (float)360)*_arcAngleMax, color);
-	// 				}
-	// 			};
-	// void 		drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t radiusH,uint16_t color);
-	// void 		ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint8_t r=20, uint16_t colorScheme=4,uint16_t backSegColor=BLACK,int angle=150,uint8_t inc=5);
-	// void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, uint16_t color,int offset = -90);
-	// void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uint8_t length, uint16_t color,int offset = -90);
-	//------------------------------- BITMAP --------------------------------------------------
-	// void		drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,int16_t w, int16_t h, uint16_t color);
-	// void		drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w, int16_t h,uint16_t color, uint16_t bg);
-	// void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE,uint16_t b=BLACK);
 
 
 	//------------------------------- SCROLL ----------------------------------------------------
@@ -188,14 +163,19 @@ class SSD_13XX {
 	volatile int16_t		_width, _height;
 	volatile uint8_t		_remapReg;
 
+
+
+
+
  private:
  
+    SPI_Instance _spi;
+
 	uint8_t					_colorDepth;
 
 	uint8_t					_initError;
 	uint8_t					_sleep;
-	// float 					_arcAngleMax;
-	// int 					_arcAngleOffset;
+
 	uint8_t					_currentMode;
 
 	uint8_t					_rotation;
@@ -204,40 +184,219 @@ class SSD_13XX {
 	uint16_t				_defaultBgColor;
 	uint16_t				_defaultFgColor;
 
-/* ========================================================================
-					       Helpers
-   ========================================================================*/
-	// void 		plot4points_cont(int16_t cx, int16_t cy, int16_t x, int16_t y, uint16_t color);
-	// void		drawCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,uint16_t color);
-	// void		fillCircle_cont_helper(int16_t x, int16_t y, int16_t radius, uint8_t cornername,int16_t delta, uint16_t color);
-	// void 		drawArcHelper(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float start, float end, uint16_t color);
-	void 		fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
-	// void 		fillTriangle_cont(int16_t x0, int16_t y0,int16_t x1, int16_t y1,int16_t x2, int16_t y2, uint16_t color);
-	// void 		setArcParams(float arcAngleMax, int arcAngleOffset);
 
-	bool 		boundaryCheck(int16_t xw,int16_t yh);
 
-	void 		setRegister_cont(const uint8_t cmd,uint8_t data);
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	void 		_fillUtility(bool filling);
-	int			_dlyHelper(int16_t w,int16_t h,int maxDly);
 
-	void 		_sendColor_cont(uint8_t r,uint8_t g,uint8_t b);
-	void 		_sendColor_cont(uint16_t color);
-	void 		_sendLineData_cont(int16_t x0,int16_t y0,int16_t x1,int16_t y1);
+    // ================================ 
+    #pragma region Inline methods defined in SSD_Core.ipp:
+    // ================================
+
+    /**
+     * @brief Calculate delay in microseconds for an 
+     * operation based on window size (w and h).
+     * 
+     * @param w 
+     * @param h 
+     * @param maxDly 
+     * @return int 
+     */
+	int	_calculateDelay(
+        int16_t w, 
+        int16_t h,
+        int maxDly
+    );
+
+    /**
+     * @brief Check if the given x and y 
+     * coordinates are within the screen bounds.
+     * 
+     * @param x 
+     * @param y 
+     * @return true 
+     * @return false 
+     */
+	bool _checkBounds(
+        int16_t x,
+        int16_t y
+    );
+
+    /**
+     * @brief Set row and column start and end addresses. This  
+     * method does not start or end the SPI transaction frame.
+     * 
+     * @param rowStart 
+     * @param columnStart 
+     * @param rowEnd 
+     * @param columnEnd 
+     * @param checkRotation 
+     */
+	void _setAddressWindow(
+        uint16_t rowStart, 
+        uint16_t columnStart, 
+        uint16_t rowEnd, 
+        uint16_t columnEnd,
+        bool checkRotation = true
+    );
+
+    /**
+     * @brief Draw a single pixel on the screen. This method 
+     * does not start or end the SPI transaction frame.
+     * 
+     * @param x 
+     * @param y 
+     * @param color 
+     */
+    void _drawPixel(
+        int16_t x, 
+        int16_t y, 
+        uint16_t color
+    );
+
+    /**
+     * @brief Draw a rectangle outlined or filled.
+     * 
+     * @param x 
+     * @param y 
+     * @param w 
+     * @param h 
+     * @param color1 
+     * @param color2 
+     * @param filled 
+     */
+	void _drawRectangle(
+        int16_t x, 
+        int16_t y, 
+        int16_t w, 
+        int16_t h, 
+        uint16_t color1,
+        uint16_t color2, 
+        bool filled
+    );
+
+    /**
+     * @brief Draw a rectangle that will be filled 
+     * with a gradient between the two given colors.
+     * 
+     * @param x 
+     * @param y 
+     * @param w 
+     * @param h 
+     * @param color1 
+     * @param color2 
+     */
+	void _drawRectangleWithGradient(
+        int16_t x, 
+        int16_t y, 
+        int16_t w, 
+        int16_t h, 
+        uint16_t color1,
+        uint16_t color2
+    );
+    
+    #pragma endregion
+    // ================================
+
+    // ================================
+    #pragma region Private methods defined in SSD_Core.cpp:
+    // ================================
+
+    /**
+     * @brief Write data to a register. This method
+     * does not start or end the SPI transaction frame.
+     * 
+     * @param cmd 
+     * @param data 
+     */
+	void _writeRegister(
+        const uint8_t cmd,
+        uint8_t data
+    );
+
+    /**
+     * @brief Draw a horizontal line. This method
+     * does not start or end the SPI transaction frame.
+     * 
+     * @param x 
+     * @param y 
+     * @param w 
+     * @param color 
+     */
+	void _drawHorizontalLine(
+        int16_t x, 
+        int16_t y, 
+        int16_t w, 
+        uint16_t color
+    );
+
+    /**
+     * @brief Draw a vertical line. This method
+     * does not start or end the SPI transaction frame.
+     * 
+     * @param x 
+     * @param y 
+     * @param h 
+     * @param color 
+     */
+	void _drawVerticalLine(
+        int16_t x, 
+        int16_t y, 
+        int16_t h, 
+        uint16_t color
+    );
+
+    /**
+     * @brief Draw a line.  This method does not 
+     * start or end the SPI transaction frame.
+     * 
+     * @param x0 
+     * @param y0 
+     * @param x1 
+     * @param y1 
+     * @param color 
+     */
+	void _drawLine(
+        int16_t x0, 
+        int16_t y0, 
+        int16_t x1, 
+        int16_t y1, 
+        uint16_t color
+    );
+
+	#if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
+
+    /**
+     * @brief Enable or disable fill.
+     * 
+     * @param filling 
+     */
+	void _setFillState(bool filling);
+
+    /**
+     * @brief Write color data. This method does
+     * not start or end the SPI transaction frame.
+     * 
+     * @param r 
+     * @param g 
+     * @param b 
+     */
+	void _writeColorData(uint8_t r,uint8_t g,uint8_t b);
+
 	#endif
-	void 		setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix = true);
-	void 		setAddrWindow_cont(uint16_t x, uint16_t y);
-	void 		drawFastHLine_cont(int16_t x, int16_t y, int16_t w, uint16_t color);
-	void 		drawFastVLine_cont(int16_t x, int16_t y, int16_t h, uint16_t color);
-	void 		drawPixel_cont(int16_t x, int16_t y, uint16_t color);
-	void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
-	void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
 
+    inline void _startTransaction() { _spi.startTransaction(); };
+    inline void _closeTransaction() { _spi.deselectAndEndTransaction(); };
+    inline void _writedata16_cont(uint16_t data) { _spi.writeData16(data); };
+
+    #pragma endregion
+    // ================================
+
+    // Give text engine and graphics engine access to private methods here.
     friend class Text_Engine;
     friend class Graphics_Engine;
 };
 
+// Inline method definitions.
 #include "SSD_Core.ipp"
 
 #endif
