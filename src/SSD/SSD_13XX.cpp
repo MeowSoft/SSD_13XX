@@ -156,14 +156,10 @@ SSD_13XX::SSD_13XX(SPI_Driver spi, const uint8_t rstPin) {
 void SSD_13XX::begin()
 {
 //initialize Vars
-_screenConfig.init();
-
-	_currentMode	= 0b00000000;
+_screenConfig.init(this);
 
 	setColorDepth(SSD_COLORDEPTH);
 	setColorOrder(SSD_RGBORDER);
-	_defaultBgColor = _SSD_DEF_BACKGROUND;
-	_defaultFgColor = _SSD_DEF_FOREGROUND;
 
 	if (_rstPin != 255) {
 		pinMode(_rstPin, OUTPUT);
@@ -262,11 +258,11 @@ _screenConfig.init();
 	_spi.writeCommand8AndDeselect(CMD_DISPLAYON);
 	_spi.endTransaction();
 	delay(60);
-	setRotation(_SSD_DEF_ROTATION);
-	fillScreen(_defaultBgColor);
+	setRotation(SSD_ScreenConfig::ROTATION_LANDSCAPE);
+	fillScreen(BLACK);
 
 	delay(1);
-	changeMode(NORMAL);
+	changeMode(SSD_ScreenConfig::NORMAL);
 }
 
 
@@ -299,106 +295,14 @@ This change the mode of the display as:
 	DISP_DIM: The all display goe dim
 	DISP_OFF: The opposite of above
 */
-void SSD_13XX::changeMode(const enum SSD_13XX_modes m)
+void SSD_13XX::changeMode(const enum SSD_ScreenConfig::ScreenModes m)
 {
-	if (m != _currentMode){
-		_spi.startTransaction();
-		switch(m){
-			case NORMAL:
-				if (_currentMode == 6) {//was in off display?
-					_spi.writeCommand8(CMD_DISPLAYON);
-				}
-				/*
-				if (_currentMode == 2) {//was in idle?
-					//_spi.writeCommand8(CMD_IDLEOF);
-				}
-				*/
-				
-				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-				if (_currentMode == 8) {//was in powerMode?
-					_writeRegister(CMD_POWERMODE,SSD_POWERMODE);
-					//delay(120);//needed
-				}
-				#endif
-				
-				if (_currentMode == 4){//was inverted?
-					//SSD1332 should need only CMD_NORMALDISPLAY!?!
-					#if defined(SSD_1331_REGISTERS_H)
-					//_spi.writeCommand8(CMD_DINVOF);
-					#endif
-				}
-				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
-				if (_currentMode == 9){//was in protect mode?
-					_writeRegister(CMD_CMDLOCK,0x12);//unlock
-				}
-				#endif
-				/*
-				if (_currentMode == 12 || _currentMode == 13){//all on or off?
-					//nothing
-				}
-				*/
-				_spi.writeCommand8(CMD_NORMALDISPLAY);
-				_currentMode = 0;
-			break;
-			case ALL_ON:
-				_spi.writeCommand8(CMD_DISPLAYALLON);
-				_currentMode = 12;
-			break;
-			case ALL_OFF:
-				_spi.writeCommand8(CMD_DISPLAYALLOFF);
-				_currentMode = 13;
-			break;
-			case PWRSAVE: //power mode ON
-				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-					_spi.writeCommand8(CMD_POWERMODE);
-					_spi.writeCommand8AndDeselect(0x1A);
-					_currentMode = 8;
-					delay(5);//needed
-				#else
-					//TODO: exist?
-					//_spi.writeData8AndDeselect(0x1A);
-				#endif
-				_spi.endTransaction();
-				return;
-			case INVERT:
-				_spi.writeCommand8(CMD_INVERTDISPLAY);//OK
-				_currentMode = 4;
-			break;
-			case DISP_ON:
-				_spi.writeCommand8(CMD_DISPLAYON);
-				_currentMode = 5;
-			break;
-			case DISP_OFF:
-				_spi.writeCommand8(CMD_DISPLAYOFF);
-				_currentMode = 6;
-			break;
-			/*
-			case DISP_DIM:
-				_spi.writeCommand8(CMD_DISPLAYDIM);
-				_currentMode = 7;
-			break;
-			*/
-			case PROTECT:
-				#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
-				_writeRegister(CMD_CMDLOCK,0x16);//lock
-				_currentMode = 9;
-				#else
-					endTransaction();
-					return;
-				#endif
-			break;
-			default:
-				_spi.endTransaction();
-				return;
-			break;
-		}
-		_spi.deselectAndEndTransaction();
-	}
+	_screenConfig.changeMode(m);
 }
 
 uint8_t SSD_13XX::getMode(void)
 {
-	return _currentMode;
+	return _screenConfig.getMode();
 }
 
 
@@ -472,19 +376,11 @@ void SSD_13XX::setColorOrder(bool order)
 }
 
 //+++++++++OK
-void SSD_13XX::setRotation(uint8_t m)
+void SSD_13XX::setRotation(SSD_ScreenConfig::Rotations m)
 {
     _screenConfig.setRotation(m);
+    _screenConfig.writeRemap();
 
-    _spi.startTransaction();
-		_setAddressWindow(0,0,_screenConfig.getHeight()-1,_screenConfig.getWidth()-1,false);
-		_spi.writeCommand8(CMD_SETREMAP);//set remap
-		#if defined(_SSD_USECMDASDATA)
-			_spi.writeCommand8AndDeselect(_screenConfig.getRemap());
-		#else
-			_spi.writeData8AndDeselect(_screenConfig.getRemap());
-		#endif
-	_spi.deselectAndEndTransaction();
 
 }
 
@@ -583,30 +479,6 @@ boolean SSD_13XX::scroll(bool active)
 **********************************************************/
 
 
-//+++++++++OK
-void SSD_13XX::setBackground(uint16_t color)
-{
-	_defaultBgColor = color;
-}
-
-//+++++++++OK
-void SSD_13XX::setForeground(uint16_t color)
-{
-	_defaultFgColor = color;
-}
-
-//+++++++++OK
-uint16_t SSD_13XX::getBackground(void)
-{
-	return _defaultBgColor;
-}
-
-//+++++++++OK
-uint16_t SSD_13XX::getForeground(void)
-{
-	return _defaultFgColor;
-}
-
 /*********************************************************
 ****************** Graphic Functions *********************
 **********************************************************/
@@ -684,7 +556,7 @@ void SSD_13XX::fillScreen(uint16_t color1,uint16_t color2)
 //+++++++++OK
 void SSD_13XX::clearScreen(void)
 {
-	fillScreen(_defaultBgColor);
+	fillScreen(BLACK);
 	//_cursorX = _cursorY = 0;
 }
 

@@ -35,12 +35,7 @@ bool Graphics_Engine::isPortrait() {
 void Graphics_Engine::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix) {
     ssd_->_setAddressWindow(x0, y0, x1, y1, rotFix);
 }
-uint16_t Graphics_Engine::getDefaultBackground() {
-    return ssd_->_defaultBgColor;
-}
-uint16_t Graphics_Engine::getDefaultForeground() {
-    return ssd_->_defaultFgColor;
-}
+
 void Graphics_Engine::startTransaction() {
     ssd_->_spi.startTransaction();
 }
@@ -794,7 +789,7 @@ void Graphics_Engine::ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t 
 
 
 //OK with SetRemap 0...3
-void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m,uint16_t b)
+void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m,uint16_t b, uint16_t bgColor, uint16_t fgColor)
 {
 	uint16_t px = 0;
 	uint16_t color;
@@ -840,12 +835,12 @@ void Graphics_Engine::drawImage(int16_t x, int16_t y,const tPicture *img,const e
 		if (m == TRANSPARENT){
 			if (color <= b) skip = true;
 		} else if (m == REPLACE){
-			if (color <= b) color = getDefaultBackground();
+			if (color <= b) color = bgColor;
 		} else if (m == BOTH){
 			if (color <= b) {
-				color = getDefaultBackground();
+				color = bgColor;
 			} else {
-				color = getDefaultForeground();
+				color = fgColor;
 			}
 		}
 

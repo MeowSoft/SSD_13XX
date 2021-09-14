@@ -24,7 +24,7 @@ void		drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1,int16_t x2, in
     void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t length, uint16_t color,int offset = -90);
 	void 		drawLineAngle(int16_t x, int16_t y, int angle, uint8_t start, uint8_t length, uint16_t color,int offset = -90);
 void 		ringMeter(int val, int minV, int maxV, uint8_t x, uint8_t y, uint8_t r=20, uint16_t colorScheme=4,uint16_t backSegColor=BLACK,int angle=150,uint8_t inc=5);
-	void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE,uint16_t b=BLACK);
+	void 		drawImage(int16_t x, int16_t y,const tPicture *img,const enum SSD_13XX_iconMods m=NONE, uint16_t b=BLACK, uint16_t bgColor=BLACK, uint16_t fgColor=BLACK);
 void		drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap,int16_t w, int16_t h, uint16_t color);
 	void		drawBitmap(int16_t x, int16_t y,const uint8_t *bitmap, int16_t w, int16_t h,uint16_t color, uint16_t bg);
 
@@ -63,8 +63,7 @@ void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float 
     void 		drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled);
     void 		drawLine_cont(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
     void 		setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix = true);
-    uint16_t getDefaultBackground();
-    uint16_t getDefaultForeground();
+
     void startTransaction();
     void closeTransaction();
     void writedata16_cont(uint16_t d);

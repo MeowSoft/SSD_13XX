@@ -128,7 +128,7 @@ void benchmark_run2() {
     #endif
 
     _FillScreen(0x0000);
-    _ChangeMode(SSD_13XX_modes::NORMAL);
+    _ChangeMode(SSD_ScreenConfig::NORMAL);
     delay(1000);
     testFilledRects(YELLOW, MAGENTA);
 }
@@ -145,14 +145,14 @@ void benchmark_run() {
         _SetRotation(
             #ifdef USE_MINE
             //(SSD_13xx_Rotation_Modes_t)rotation
-            rotation
+            (SSD_ScreenConfig::Rotations)rotation
             #else
             rotation
             #endif
         );
         SerialPrintf("Benchmark: \r\n    rotation = %d\r\n", rotation);
 
-        _ChangeMode(SSD_13XX_modes::NORMAL);
+        _ChangeMode(SSD_ScreenConfig::NORMAL);
         delay(1000);
 
         testFillScreen(NAVY);
@@ -182,7 +182,7 @@ void benchmark_run() {
         testFilledRoundRects();
         delay(1000);
 
-        _ChangeMode(SSD_13XX_modes::DISP_OFF);
+        _ChangeMode(SSD_ScreenConfig::DISP_OFF);
         SerialPrintf("\r\n");
     }
 }

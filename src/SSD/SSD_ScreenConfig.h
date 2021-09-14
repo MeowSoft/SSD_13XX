@@ -3,135 +3,111 @@
 
 #include <stdint.h>
 #include "_settings/SSD_13XX_settings.h"
-#include "SSD_13XX.h"
+// #include "SSD_13XX.h"
 #include "SSD_Util.h"
+
+class SSD_13XX;
+
+
 
 class SSD_ScreenConfig {
 
     public:
 
-        void init() {
+        enum Rotations {
+            ROTATION_LANDSCAPE = 0, 
+            ROTATION_PORTRAIT, 
+            ROTATION_LANDSCAPE_REVERSED, 
+            ROTATION_PORTRAIT_REVERSED 
+        };
+/*
+This change the mode of the display as:
+	NORMAL: Normal mode.
+	PWRSAVE: Consume much less power
+	PROTECT: Display protect his serial comm, accept only a change mode as normal to exit protected state
+	INVERT: It invert the display
+	DISP_ON: Turn on display (if off) and enable backlight pin if used
+	DISP_DIM: The all display goe dim
+	DISP_OFF: The opposite of above
+*/
 
-            _remapReg = 0;
-            _portrait = false;
-            #if defined(_SSD_1331_96X64_H) || defined(_SSD_1332_96X64_H)
-            if (SSD_COMSPLIT == 1){
-                _remapReg |= ((1 << 5));
-            } else {
-                _remapReg |= ((0 << 5));
-            }
-            #endif
+        enum  ScreenModes {
+            NORMAL = 0,
+            PWRSAVE,
+            INVERT,
+            DISP_ON, 
+            DISP_DIM,
+            DISP_OFF,
+            PROTECT,
+            ALL_ON,
+            ALL_OFF
         };
 
-        void setColorDepth(uint8_t depth)
-        {
-            if (depth == 16){
-                _colorDepth = 16;
-                _remapReg |= ((0 << 7) | (1 << 6));
-            #if defined(SSD_1351_REGISTERS_H)
-            } else if (depth == 18) {
-                _colorDepth = 16;
-                _remapReg |= ((1 << 7) | (0 << 6));
-            #endif
-            } else {
-                _colorDepth = 8;
-                _remapReg |= ((0 << 7) | (0 << 6));
-            }
-        };
+        /**
+         * @brief Initialize the screen configuration.
+         * 
+         * @param ssd Reference to the containing SSD object. 
+         * This is needed for access to SPI methods to write 
+         * the remap register and change modes. 
+         */
+        void init(SSD_13XX* ssd);
 
-        void setColorOrder(bool order)
-        {
-        
-            #if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
-                _remapReg |= ((order << 2));
-            #endif
-        };
+        /**
+         * @brief Set the screen color depth.
+         * 
+         * @param depth Can be 8, 16, or (SSD_1351 only) 18. 
+         * Other values will be coerced to one of these.
+         */
+        void setColorDepth(uint8_t depth);
 
-        void setRotation(uint8_t m) {
+        /**
+         * @brief Set the screen color order.
+         * 
+         * @param useBGR Set TRUE to use BGR instead of RGB.
+         */
+        void setColorOrder(bool useBGR);
 
-            _width  = SSD_WIDTH;
-            _height = SSD_HEIGHT;
+        /**
+         * @brief Set screen rotation.
+         * 
+         * @param rotation Rotation value.
+         */
+        void setRotation(Rotations rotation);
 
-            _rotation = m % 4; // can't be higher than 3
-	_portrait = false;
-	_remapReg &= ~(0x1B);//clear bit 0,1,3,4
-	if (_rotation == 0){
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1));//bit 4 & 1
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 4));//bit 4
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 4));//(1)
-		#else
-			//TODO
-		#endif
-	} else if (_rotation == 1){
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 0));//bit 4 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//bit 4 & 1 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 4) | (1 << 1) | (1 << 0));//(2)
-			swapVals(_width,_height);
-			_portrait = true;
-		#else
-			//TODO
-		#endif
-	} else if (_rotation == 2){
-		#if defined(SSD_1331_REGISTERS_H)
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 1));//bit 1
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 1));//(3)
-		#else
-			//TODO
-		#endif
-	} else {
-		#if defined(SSD_1331_REGISTERS_H)
-			_remapReg |= ((1 << 1) | (1 << 0));//bit 1 & 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1332_REGISTERS_H)
-			_remapReg |= ((1 << 0));//bit 0
-			swapVals(_width,_height);
-			_portrait = true;
-		#elif defined(SSD_1351_REGISTERS_H)
-			_remapReg |= ((1 << 0));//(0)
-			swapVals(_width,_height);
-			_portrait = true;
-		#else
-			//TODO
-		#endif
-	}
-        };
+        /**
+         * @brief Write the remap register. This method must be
+         * called after calling 'init', 'setColorDepth' setColorOrder' 
+         * or 'setRotation' to commit the changes to the display.
+         */
+        void writeRemap();
 
-int16_t getWidth() const {
-    return _width;
-};
-int16_t getHeight() const {
-    return _height;
-};
-bool isPortrait() {return _portrait; }
+        /**
+         * @brief Set the screen mode.
+         * 
+         * @param mode Mode to set. See the enum 
+         * definition for a desription of each mode.
+         */
+        void changeMode(ScreenModes mode);
 
-uint8_t getRotation() {
-    return _rotation;
-};
-uint8_t getRemap() {
-    return _remapReg;
-}
+        // Getters:
+        uint8_t getMode() { return _currentMode; };
+        int16_t getWidth() const { return _width; };
+        int16_t getHeight() const { return _height; };
+        bool isPortrait() { return _portrait; }
+        uint8_t getRotation() { return _rotation; };
+        uint8_t getRemap() { return _remapReg; }
 
     private:
 
-        volatile uint8_t _remapReg;
-	volatile int16_t		_width, _height;
-	uint8_t					_colorDepth;
-	uint8_t					_rotation;
-	bool				_portrait;
+        SSD_13XX* _ssd;
 
+        volatile uint8_t _remapReg;
+        volatile int16_t _width;
+        volatile int16_t _height;
+        uint8_t	_colorDepth;
+        uint8_t	_rotation;
+        bool _portrait;
+	    uint8_t	_currentMode;
 };
 
 #endif

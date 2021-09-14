@@ -93,11 +93,10 @@ Icon Render              1754
 #include "_includes/sumotoy_imageDescription.h"
 #include "_includes/sumotoy_iconDescription.h"
 
+
+enum  SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
+
 #include "SSD_ScreenConfig.h"
-
-
-enum SSD_13XX_modes{NORMAL=0,PWRSAVE,INVERT,DISP_ON, DISP_DIM,DISP_OFF,PROTECT,ALL_ON,ALL_OFF};
-enum SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
 
 class SSD_13XX {
 
@@ -108,18 +107,15 @@ class SSD_13XX {
 
 	void     	begin();
 	void		setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
-	void		changeMode(const enum SSD_13XX_modes m);
+	void		changeMode(const enum SSD_ScreenConfig::ScreenModes m);
 	uint8_t 	getMode(void);
 	int16_t		height(void) const;
 	int16_t 	width(void) const;
 	int16_t		cgHeight(void) const;
 	int16_t 	cgWidth(void) const;
-	void		setRotation(uint8_t r);
+	void		setRotation(SSD_ScreenConfig::Rotations r);
 	uint8_t 	getRotation(void);
-	void 		setBackground(uint16_t color);
-	void 		setForeground(uint16_t color);
-	uint16_t 	getBackground(void);
-	uint16_t 	getForeground(void);
+
 	void 		setBrightness(uint8_t brightness);
 	void 		setColorDepth(uint8_t depth);
 	void 		setColorOrder(bool order);
@@ -156,12 +152,6 @@ class SSD_13XX {
  
     SPI_Driver _spi;
 
-
-	uint8_t					_currentMode;
-
-
-	uint16_t				_defaultBgColor;
-	uint16_t				_defaultFgColor;
 
 
     SSD_ScreenConfig _screenConfig;
