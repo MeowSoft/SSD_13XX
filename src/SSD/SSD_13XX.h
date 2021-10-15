@@ -1,365 +1,557 @@
-/*
-	SSD_13XX - A fast SPI driver for several Solomon Systech SSD13xx series driver
-	Version: 1.0r3, beta release
-
-	https://github.com/sumotoy/SSD_13XX
-
-	The library has a settings file inside _settings/SSD_13XX_settings.h, open it and choose
-	your display type. Display settings files are inside _display folder, you may need duplicate and change
-	name so you can tweak as your needs but normally this is not raccomanded since some parameter can
-	literally destroy your display.
-
-	-------------------------------------------------------------------------------
-    Copyright (c) 2014/2015/2016, .S.U.M.O.T.O.Y., coded by Max MC Costa.
-
-    SSD_13XX Library is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    SSD_13XX Library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-	++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	Special Thanks:
-	Thanks to Paul Stoffregen for his beautiful Teensy3 and FIFO SPI.
-	Thanks to Jnmattern & Marek Buriak for drawArc!, reaper7 for a hint and many others
-	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	Version:
-	1.0r1: First version
-	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	BugList of the current version:
-		Scroll should work but it has to be recoded, it's on bottom of my TODO list
-	Please report any!
-	Benchmarks -----------------------------------------------------------------
-	Screen fill              409	809		807		809		808		507		406
-	Text                     3983	3907	3963	3891	2357	2378	2270
-	Text2                    9564	9368	9517	9332	5047	5057	4910
-	Lines                    5576	10976	10978	10974	5561	299		277
-	Horiz/Vert Lines         6827	1800	1978	1964	1956	1954	1956
-	Rectangles (outline)     4508	8916	8919	8915	1126	1376	1123
-	Rectangles (filled)      4509	8924	8922	8920	1223	1499	1214
-	Circles (filled)         3635	18787	4488	4482	4481	4479	4481
-	Circles (outline)        4697	2851	2852	2849	2848	2847	2847
-	Triangles (outline)      517	505		508		504		503		204		183
-	Triangles (filled)       1916	11087	4284	4274	4276	4274	4275
-	Rounded rects (outline)  1206	2942	1619	1586	1585	1587	1588
-	Rounded rects (filled)   10271	8184	5814	5807	5036	5241	5032
-	Icon Render              										1404	1312
-	----------------------------------------------------------------------------
-	Versions:            	 1st	hrdw	r11		remap	adly	ldly
-Screen fill              11952
-Text                     1988
-Text2                    11004
-Lines                    12550
-Horiz/Vert Lines         5141
-Arc                      178365
-Rectangles (outline)     4108
-Rectangles (filled)      91168
-Circles (filled)         21413
-Circles (outline)        21863
-Triangles (outline)      4023
-Triangles (filled)       30205
-Rounded rects (outline)  7010
-Rounded rects (filled)   99127
-Icon Render              1754
-*/
-
 #ifndef _SSD_13XXLIB_H_
 #define _SSD_13XXLIB_H_
 
+// Hardware config. (Select display type here)
+#include "Hardware/Config.h"
 
-#include "Arduino.h"
-
-#include <limits.h>
-#include "pins_arduino.h"
-#include "wiring_private.h"
-#include <stdio.h>
-#include <stdlib.h>
-// #include "Print.h"
-#include <SPI.h>
+// SPI driver lib.
 #include "Spi_Driver.h"
 
-#include "_includes/_cpuCommons.h"
-#include "_includes/_common_16bit_colors.h"
-#include "_settings/SSD_13XX_settings.h"
-
-//Load sumotoy universal descriptors (used in many other libraries)
-// #include "_includes/sumotoy_fontDescription.h"
-#include "_includes/sumotoy_imageDescription.h"
-#include "_includes/sumotoy_iconDescription.h"
-
-
-enum  SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
-
+// Screen config class.
 #include "SSD_ScreenConfig.h"
 
 class SSD_13XX {
 
- public:
+    public:
 
-    SSD_13XX(SPI_Driver spi, const uint8_t rstPin);
+        /**
+         * @brief Constructor to set the SPI driver instance and reset pin.
+         * 
+         * @param spi 
+         * @param rstPin 
+         */
+        SSD_13XX(
+            SPI_Driver spi, 
+            const uint8_t rstPin
+        );
 
+        // ===================================================
+        /* #region Screen configuration methods:            */
+        // ===================================================
 
-	void     	begin();
-	void		setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
-	void		changeMode(const enum SSD_ScreenConfig::ScreenModes m);
-	uint8_t 	getMode(void);
-	int16_t		height(void) const;
-	int16_t 	width(void) const;
-	int16_t		cgHeight(void) const;
-	int16_t 	cgWidth(void) const;
-	void		setRotation(SSD_ScreenConfig::Rotations r);
-	uint8_t 	getRotation(void);
+        /**
+         * @brief Initialize screen hardware.
+         */
+	    void init(void);
 
-	void 		setBrightness(uint8_t brightness);
-	void 		setColorDepth(uint8_t depth);
-	void 		setColorOrder(bool order);
-	//---------------------------- GEOMETRY ------------------------------------------------
-	void		fillScreen(uint16_t color);																														//OK
-	void		fillScreen(uint16_t color1,uint16_t color2);																									//Not ROT
-	void		clearScreen(void);//fill with color choosed in setBackground
-	void 		copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16_t dx, int16_t dy);
-	void 		dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
-	void 		moveArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1);
-	void		drawPixel(int16_t x, int16_t y, uint16_t color);
-	void		drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
-	void		drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
-	void		drawLine(int16_t x0, int16_t y0,int16_t x1, int16_t y1, uint16_t color);
-	void		drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
-	void		drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled);
-	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color);
-	void		fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2);
+        /**
+         * @brief Reset screen hardware.
+         */
+        void resetScreen(void);
 
+        /**
+         * @brief Set screen mode.
+         * 
+         * @param mode The mode to set. See 'ScreenModes' in the 
+         * 'SSD_ScreenConfig' class for descriptions of modes to set.
+         */
+	    void setScreenMode(const enum SSD_ScreenConfig::ScreenModes mode);
 
-	//------------------------------- SCROLL ----------------------------------------------------
-	void 		defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint8_t e);
-	boolean		scroll(bool active);
+        /**
+         * @brief Get current screen mode.
+         * 
+         * @return SSD_ScreenConfig::ScreenModes 
+         */
+	    SSD_ScreenConfig::ScreenModes getScreenMode(void);
 
+        /**
+         * @brief Set the screen rotation.
+         * 
+         * @param rotation The rotation to set.
+         */
+	    void setScreenRotation(SSD_ScreenConfig::Rotations rotation);
 
- protected:
-	uint8_t 				_rstPin;
+        /**
+         * @brief Get the screen rotation.
+         * 
+         * @return SSD_ScreenConfig::Rotations 
+         */
+	    SSD_ScreenConfig::Rotations getScreenRotation(void);
 
+        /**
+         * @brief Get screen height.
+         * 
+         * @return int16_t 
+         */
+	    int16_t	getScreenHeight(void) const;
 
+        /**
+         * @brief Get screen width.
+         * 
+         * @return int16_t 
+         */
+	    int16_t getScreenWidth(void) const;
 
+        /**
+         * @brief Set the screen color depth.
+         * 
+         * @param depth Can be 8, 16, or (SSD_1351 only) 18. 
+         * Other values will be coerced to one of these.
+         */
+	    void setScreenColorDepth(uint8_t depth);
 
+        /**
+         * @brief Set the screen color order.
+         * 
+         * @param order Color order to use.
+         */
+	    void setScreenColorOrder(ColorOrder_t order);
 
- private:
- 
-    SPI_Driver _spi;
+        /**
+         * @brief Set the address window to write screen data to.
+         * 
+         * @param x0 
+         * @param y0 
+         * @param x1 
+         * @param y1 
+         */
+	    void setAddressWindow(
+            int16_t x0, 
+            int16_t y0, 
+            int16_t x1, 
+            int16_t y1
+        );
 
+        /**
+         * @brief Set screen brightness level.
+         * 
+         * @param brightness Level to set. 0 - 15. 
+         * Values higher than 15 will be clamped.
+         */
+	    void setScreenBrightness(uint8_t brightness);
 
+        /* #endregion */
+        // ===================================================
 
-    SSD_ScreenConfig _screenConfig;
+        // ===================================================
+        /* #region Scroll methods:                          */
+        // ===================================================
 
-    // ================================ 
-    #pragma region Inline methods defined in SSD_Core.ipp:
-    // ================================
+        /**
+         * @brief Set up an area of the screen to scroll.
+         * 
+         * @param a Number of columns to horizontal scroll by per scroll step. (1331) OR 
+         *          direction of horizontal scroll (1351)
+         *              0x3F or less = scroll towards SEG127, 
+         *              greater than 0x3F = scroll towards SEG0 
+         * 
+         * @param b Address of first row in scroll area.
+         * @param c Number of rows in scroll area.
+         * @param d Number of rows to vertical scroll by per scroll step. (1331 only)
+         * @param e Number of frames per scroll step.
+         */
+        void defineScrollArea(
+            uint8_t a, 
+            uint8_t b, 
+            uint8_t c, 
+            uint8_t d, 
+            uint8_t e
+        );
 
-    /**
-     * @brief Calculate delay in microseconds for an 
-     * operation based on window size (w and h).
-     * 
-     * @param w 
-     * @param h 
-     * @param maxDly 
-     * @return int 
-     */
-	int	_calculateDelay(
-        int16_t w, 
-        int16_t h,
-        int maxDly
-    );
+        /**
+         * @brief Turn scroll on or off.
+         * 
+         * @param active 
+         */
+	    void scroll(bool active);
 
-    /**
-     * @brief Check if the given x and y 
-     * coordinates are within the screen bounds.
-     * 
-     * @param x 
-     * @param y 
-     * @return true 
-     * @return false 
-     */
-	bool _checkBounds(
-        int16_t x,
-        int16_t y
-    );
+        /* #endregion */
+        // ===================================================
 
-    /**
-     * @brief Set row and column start and end addresses. This  
-     * method does not start or end the SPI transaction frame.
-     * 
-     * @param rowStart 
-     * @param columnStart 
-     * @param rowEnd 
-     * @param columnEnd 
-     * @param checkRotation 
-     */
-	void _setAddressWindow(
-        uint16_t rowStart, 
-        uint16_t columnStart, 
-        uint16_t rowEnd, 
-        uint16_t columnEnd,
-        bool checkRotation = true
-    );
+        // ===================================================
+        /* #region Area methods:                            */
+        // ===================================================
 
-    /**
-     * @brief Draw a single pixel on the screen. This method 
-     * does not start or end the SPI transaction frame.
-     * 
-     * @param x 
-     * @param y 
-     * @param color 
-     */
-    void _drawPixel(
-        int16_t x, 
-        int16_t y, 
-        uint16_t color
-    );
+        /**
+         * @brief Copy an area of the screen.
+         * 
+         * @param sourceX 
+         * @param sourceY 
+         * @param width 
+         * @param height 
+         * @param destinationX 
+         * @param destinationY 
+         */
+        void copyArea(
+            int16_t sourceX, 
+            int16_t sourceY, 
+            int16_t width, 
+            int16_t height,
+            int16_t destinationX, 
+            int16_t destinationY
+        );
 
-    /**
-     * @brief Draw a rectangle outlined or filled.
-     * 
-     * @param x 
-     * @param y 
-     * @param w 
-     * @param h 
-     * @param color1 
-     * @param color2 
-     * @param filled 
-     */
-	void _drawRectangle(
-        int16_t x, 
-        int16_t y, 
-        int16_t w, 
-        int16_t h, 
-        uint16_t color1,
-        uint16_t color2, 
-        bool filled
-    );
+        /**
+         * @brief Dim an area of the screen.
+         * 
+         * @param x 
+         * @param y 
+         * @param width 
+         * @param height 
+         */
+        void dimArea(
+            int16_t x, 
+            int16_t y, 
+            int16_t width, 
+            int16_t height
+        );
 
-    /**
-     * @brief Draw a rectangle that will be filled 
-     * with a gradient between the two given colors.
-     * 
-     * @param x 
-     * @param y 
-     * @param w 
-     * @param h 
-     * @param color1 
-     * @param color2 
-     */
-	void _drawRectangleWithGradient(
-        int16_t x, 
-        int16_t y, 
-        int16_t w, 
-        int16_t h, 
-        uint16_t color1,
-        uint16_t color2
-    );
+        /**
+         * @brief Clear an area of the screen.
+         * 
+         * @param x 
+         * @param y 
+         * @param width 
+         * @param height 
+         */
+        void clearArea(
+            int16_t x, 
+            int16_t y, 
+            int16_t width, 
+            int16_t height
+        );
+
+        /* #endregion */
+        // ===================================================
+
+        // ===================================================
+        /* #region Drawing methods:                         */
+        // ===================================================
+
+        /**
+         * @brief Fill the screen with the given color.
+         * 
+         * @param color 
+         */
+        void fillScreen(uint16_t color);	
+
+        /**
+         * @brief Draw a single pixel.
+         * 
+         * @param x 
+         * @param y 
+         * @param color 
+         */
+	    void drawPixel(
+            int16_t x, 
+            int16_t y, 
+            uint16_t color
+        );
+
+        /**
+         * @brief Draw a line.
+         * 
+         * @param x0 
+         * @param y0 
+         * @param x1 
+         * @param y1 
+         * @param color 
+         */
+	    void drawLine(
+            int16_t x0, 
+            int16_t y0,
+            int16_t x1, 
+            int16_t y1, 
+            uint16_t color
+        );
+
+        /**
+         * @brief Draw a rectangle.
+         * 
+         * @param x Starting x coordinate.
+         * @param y Starting Y coordinate.
+         * @param width Rectangle width.
+         * @param height Rectangle height.
+         * @param color1 Rectangle outline color.
+         * @param color2 Rectangle fill color.
+         * @param filled Fill rectangle or only outline.
+         */
+	    void drawRectangle(
+            int16_t x, 
+            int16_t y, 
+            int16_t width, 
+            int16_t height, 
+            uint16_t color1,
+            uint16_t color2,
+            bool filled
+        );
+
+        /**
+         * @brief Draw a rectangle shaped color gradient.
+         * 
+         * @param x Starting x coordinate.
+         * @param y Starting y coordinate.
+         * @param width Gradient width.
+         * @param height Gradient height.
+         * @param color1 Gradient starting color.
+         * @param color2 Gradient ending color.
+         */
+        void drawGradient(
+            int16_t x, 
+            int16_t y, 
+            int16_t width, 
+            int16_t height, 
+            uint16_t color1,
+            uint16_t color2
+        );
+
+        /* #endregion */
+        // ===================================================
+
+    private:
     
-    #pragma endregion
-    // ================================
+        // Screen reset pin.
+        uint8_t _rstPin;
 
-    // ================================
-    #pragma region Private methods defined in SSD_Core.cpp:
-    // ================================
+        // SPI driver.
+        SPI_Driver _spi;
 
-    /**
-     * @brief Write data to a register. This method
-     * does not start or end the SPI transaction frame.
-     * 
-     * @param cmd 
-     * @param data 
-     */
-	void _writeRegister(
-        const uint8_t cmd,
-        uint8_t data
-    );
+        // Screen config settings.
+        SSD_ScreenConfig _screenConfig;
 
-    /**
-     * @brief Draw a horizontal line. This method
-     * does not start or end the SPI transaction frame.
-     * 
-     * @param x 
-     * @param y 
-     * @param w 
-     * @param color 
-     */
-	void _drawHorizontalLine(
-        int16_t x, 
-        int16_t y, 
-        int16_t w, 
-        uint16_t color
-    );
+        // =======================================================
+        /* #region Inline methods defined in SSD_Core.ipp:      */
+        // =======================================================
 
-    /**
-     * @brief Draw a vertical line. This method
-     * does not start or end the SPI transaction frame.
-     * 
-     * @param x 
-     * @param y 
-     * @param h 
-     * @param color 
-     */
-	void _drawVerticalLine(
-        int16_t x, 
-        int16_t y, 
-        int16_t h, 
-        uint16_t color
-    );
+        /**
+         * @brief Calculate delay in microseconds for an 
+         * operation based on window size (w and h).
+         * 
+         * @param w 
+         * @param h 
+         * @param maxDly 
+         * @return int 
+         */
+        int	_calculateDelay(
+            int16_t w, 
+            int16_t h,
+            int maxDly
+        );
 
-    /**
-     * @brief Draw a line.  This method does not 
-     * start or end the SPI transaction frame.
-     * 
-     * @param x0 
-     * @param y0 
-     * @param x1 
-     * @param y1 
-     * @param color 
-     */
-	void _drawLine(
-        int16_t x0, 
-        int16_t y0, 
-        int16_t x1, 
-        int16_t y1, 
-        uint16_t color
-    );
+        /**
+         * @brief Check if the given x and y 
+         * coordinates are within the screen bounds.
+         * 
+         * @param x 
+         * @param y 
+         */
+        bool _checkBounds(
+            int16_t x,
+            int16_t y
+        );
 
-	#if defined(SSD_1331_REGISTERS_H) || \
-        defined(SSD_1332_REGISTERS_H)
+        /**
+         * @brief Coerce the given x and y coordinates to screen bounds.
+         * 
+         * @param x 
+         * @param y 
+         */
+        void _coerceBounds(
+            int16_t& x,
+            int16_t& y
+        );
 
-    /**
-     * @brief Enable or disable fill.
-     * 
-     * @param filling 
-     */
-	void _setFillState(bool filling);
+        /**
+         * @brief Set row and column start and end addresses. This  
+         * method does not start or end the SPI transaction frame.
+         * 
+         * @param rowStart 
+         * @param columnStart 
+         * @param rowEnd 
+         * @param columnEnd 
+         * @param checkRotation 
+         */
+        void _setAddressWindow(
+            uint16_t rowStart, 
+            uint16_t columnStart, 
+            uint16_t rowEnd, 
+            uint16_t columnEnd,
+            bool checkRotation = true
+        );
 
-    /**
-     * @brief Write color data. This method does
-     * not start or end the SPI transaction frame.
-     * 
-     * @param r 
-     * @param g 
-     * @param b 
-     */
-	void _writeColorData(uint8_t r,uint8_t g,uint8_t b);
+        /**
+         * @brief Draw a single pixel on the screen. This method 
+         * does not start or end the SPI transaction frame.
+         * 
+         * @param x 
+         * @param y 
+         * @param color 
+         */
+        void _drawPixel(
+            int16_t x, 
+            int16_t y, 
+            uint16_t color
+        );
 
-	#endif
+        /**
+         * @brief Draw a rectangle outlined or filled.
+         * 
+         * @param x 
+         * @param y 
+         * @param w 
+         * @param h 
+         * @param color1 
+         * @param color2 
+         * @param filled 
+         */
+        void _drawRectangle(
+            int16_t x, 
+            int16_t y, 
+            int16_t w, 
+            int16_t h, 
+            uint16_t color1,
+            uint16_t color2, 
+            bool filled
+        );
 
-    #pragma endregion
-    // ================================
+        /**
+         * @brief Draw a rectangle that will be filled 
+         * with a gradient between the two given colors.
+         * 
+         * @param x 
+         * @param y 
+         * @param w 
+         * @param h 
+         * @param color1 
+         * @param color2 
+         */
+        void _drawGradient(
+            int16_t x, 
+            int16_t y, 
+            int16_t w, 
+            int16_t h, 
+            uint16_t color1,
+            uint16_t color2
+        );
+        
+        /* #endregion */
+        // =======================================================
 
-    // Give text and graphics engines access to private methods here.
-    friend class Text_Engine;
-    friend class Graphics_Engine;
-    friend class SSD_ScreenConfig;
+        // =======================================================
+        /* #region Private methods defined in SSD_Core.cpp:     */
+        // =======================================================
+
+        void _setPreCharge();
+        void _setDimModeContrast();
+        void _setEnhanceDisplay(bool enhance);
+
+        /**
+         * @brief Init code for 133x hardware.
+         */
+        void _init133x();
+
+        /**
+         * @brief Init code for 1351 hardware.
+         */
+        void _init1351();
+
+        /**
+         * @brief Issue command to set Screen contrast.
+         */
+        void _setContrast();
+
+        /**
+         * @brief Issue command to set screen color levels.
+         */
+        void _setColorLevels();
+
+        /**
+         * @brief Issue command to load screen greyscale table.
+         */
+        void _setGreyscaleTable();
+
+        /**
+         * @brief Write data to a register. This method
+         * does not start or end the SPI transaction frame.
+         * 
+         * @param cmd 
+         * @param data 
+         */
+        void _writeRegister(
+            const uint8_t cmd,
+            uint8_t data
+        );
+
+        /**
+         * @brief Draw a horizontal line. This method
+         * does not start or end the SPI transaction frame.
+         * 
+         * @param x 
+         * @param y 
+         * @param w 
+         * @param color 
+         */
+        void _drawHorizontalLine(
+            int16_t x, 
+            int16_t y, 
+            int16_t w, 
+            uint16_t color
+        );
+
+        /**
+         * @brief Draw a vertical line. This method
+         * does not start or end the SPI transaction frame.
+         * 
+         * @param x 
+         * @param y 
+         * @param h 
+         * @param color 
+         */
+        void _drawVerticalLine(
+            int16_t x, 
+            int16_t y, 
+            int16_t h, 
+            uint16_t color
+        );
+
+        /**
+         * @brief Draw a line.  This method does not 
+         * start or end the SPI transaction frame.
+         * 
+         * @param x0 
+         * @param y0 
+         * @param x1 
+         * @param y1 
+         * @param color 
+         */
+        void _drawLine(
+            int16_t x0, 
+            int16_t y0, 
+            int16_t x1, 
+            int16_t y1, 
+            uint16_t color
+        );
+
+        // SSD_1331 and SSD_1332 only:
+        #if defined(SSD_1331_REGISTERS_H) || \
+            defined(SSD_1332_REGISTERS_H)
+
+        /**
+         * @brief Enable or disable fill.
+         * 
+         * @param filling 
+         */
+        void _setFillState(bool filling);
+
+        /**
+         * @brief Write color data. This method does
+         * not start or end the SPI transaction frame.
+         * 
+         * @param r 
+         * @param g 
+         * @param b 
+         */
+        void _writeColorData(uint8_t r,uint8_t g,uint8_t b);
+
+        #endif
+
+        /* #endregion */
+        // =======================================================
+
+        // Give text and graphics engines access to private methods here.
+        friend class Text_Engine;
+        friend class Graphics_Engine;
+        friend class SSD_ScreenConfig;
 };
 
 // Inline method definitions.

@@ -18,7 +18,7 @@ void Graphics_Engine::drawPixel_cont(int16_t x, int16_t y, uint16_t color) {
     ssd_->_drawPixel(x, y, color);
 }
 void Graphics_Engine::fillRect(int16_t x, int16_t y, int16_t w, int16_t h,uint16_t color) {
-    ssd_->fillRect(x, y, w, h, color);
+    ssd_->drawRectangle(x, y, w, h, color, color, true);
 }
 void Graphics_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled) {
     ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);

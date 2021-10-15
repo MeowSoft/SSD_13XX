@@ -2,13 +2,10 @@
 #define SSD_SCREEN_CONFIG_H
 
 #include <stdint.h>
-#include "_settings/SSD_13XX_settings.h"
-// #include "SSD_13XX.h"
-#include "SSD_Util.h"
+#include "Hardware/Displays/DisplayData.h"
 
+// Forward ref for SSD pointer.
 class SSD_13XX;
-
-
 
 class SSD_ScreenConfig {
 
@@ -20,26 +17,34 @@ class SSD_ScreenConfig {
             ROTATION_LANDSCAPE_REVERSED, 
             ROTATION_PORTRAIT_REVERSED 
         };
-/*
-This change the mode of the display as:
-	NORMAL: Normal mode.
-	PWRSAVE: Consume much less power
-	PROTECT: Display protect his serial comm, accept only a change mode as normal to exit protected state
-	INVERT: It invert the display
-	DISP_ON: Turn on display (if off) and enable backlight pin if used
-	DISP_DIM: The all display goe dim
-	DISP_OFF: The opposite of above
-*/
 
         enum  ScreenModes {
+
+            // Normal display.
             NORMAL = 0,
+
+            // Power save mode. (Only on 1331 and 1332) 
             PWRSAVE,
-            INVERT,
-            DISP_ON, 
-            DISP_DIM,
-            DISP_OFF,
+
+            // Command lockout mode. (Only on 1331 and 1351)
             PROTECT,
+
+            // Invert (negative) display mode.
+            INVERT,
+
+            // Display on. (Normal mode)
+            DISP_ON, 
+
+            // Display dim.
+            DISP_DIM,
+
+            // Display off. (Sleep mode)
+            DISP_OFF,
+
+            // Turn all pixels on. (Color will be last value in greyscale table)
             ALL_ON,
+
+            // Turn all pixels off.
             ALL_OFF
         };
 
@@ -63,9 +68,9 @@ This change the mode of the display as:
         /**
          * @brief Set the screen color order.
          * 
-         * @param useBGR Set TRUE to use BGR instead of RGB.
+         * @param order Color order to use.
          */
-        void setColorOrder(bool useBGR);
+        void setColorOrder(ColorOrder_t order);
 
         /**
          * @brief Set screen rotation.
@@ -79,7 +84,7 @@ This change the mode of the display as:
          * called after calling 'init', 'setColorDepth' setColorOrder' 
          * or 'setRotation' to commit the changes to the display.
          */
-        void writeRemap();
+        void writeRemap(void);
 
         /**
          * @brief Set the screen mode.
@@ -90,24 +95,35 @@ This change the mode of the display as:
         void changeMode(ScreenModes mode);
 
         // Getters:
-        uint8_t getMode() { return _currentMode; };
-        int16_t getWidth() const { return _width; };
-        int16_t getHeight() const { return _height; };
-        bool isPortrait() { return _portrait; }
-        uint8_t getRotation() { return _rotation; };
-        uint8_t getRemap() { return _remapReg; }
+        int16_t getWidth(void) const { return _width; };
+        int16_t getHeight(void) const { return _height; };
+        Rotations getRotation(void) { return _rotation; };
+        ScreenModes getMode(void) { return _currentMode; };
+
+        bool isPortrait(void) { 
+            return (
+                _rotation == ROTATION_PORTRAIT || 
+                _rotation == ROTATION_PORTRAIT_REVERSED
+            ); 
+        }
 
     private:
 
-        SSD_13XX* _ssd;
-
-        volatile uint8_t _remapReg;
+        // Screen width and height. These values will swap based on screen rotation.
         volatile int16_t _width;
         volatile int16_t _height;
-        uint8_t	_colorDepth;
-        uint8_t	_rotation;
-        bool _portrait;
-	    uint8_t	_currentMode;
+
+        // Screen rotation.
+        Rotations _rotation;
+
+        // Screen mode.
+	    ScreenModes	_currentMode;
+
+        // This reference allows us to do SPI stuff from this class.
+        SSD_13XX* _ssd;
+
+        // Variable to hold the remap register contents.
+        volatile uint8_t _remapReg;
 };
 
 #endif

@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 #include "SSD_13XX.h"
+#include "_includes/sumotoy_imageDescription.h"
+#include "_includes/_common_16bit_colors.h"
+enum  SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
 
 class Graphics_Engine {
 

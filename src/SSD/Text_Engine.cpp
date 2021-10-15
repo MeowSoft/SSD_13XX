@@ -19,7 +19,7 @@ void Text_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint
     ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);
 }
 void Text_Engine::fillRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2) {
-    ssd_->_drawRectangleWithGradient(x, y, w, h, color1, color2);
+    ssd_->_drawGradient(x, y, w, h, color1, color2);
 }
 void Text_Engine::setAddrWindow_cont(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1,bool rotFix) {
     ssd_->_setAddressWindow(x0, y0, x1, y1, rotFix);
@@ -551,7 +551,7 @@ void Text_Engine::_charLineRender(
 void Text_Engine::drawIcon(int16_t x, int16_t y,const tIcon *icon,uint8_t scale,uint16_t f,uint16_t b,bool inverse)
 {
 	#if defined(SSD_1351_REGISTERS_H)
-		if (_portrait) swapVals(x,y);
+		if (isPortrait()) swapVals(x,y);
 	#endif
 	#if defined(_FORCE_PROGMEM__)
 		const _smCharType * iconData 	= PROGMEM_read(&icon->data);

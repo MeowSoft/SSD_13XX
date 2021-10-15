@@ -5,8 +5,11 @@
 #include "Print.h"
 
 #include "SSD_13XX.h"
-#include "_includes/sumotoy_fontDescription.h"
 #include "_includes/_cpuCommons.h"
+#include "_includes/sumotoy_fontDescription.h"
+
+#define _SSD_DEF_FONT_PATH			"_fonts/defaultFont.c"
+	#define _SSD_DEF_FONT_NAME			defaultFont
 
 #if defined(_SSD_DEF_FONT_PATH)
 	#include _SSD_DEF_FONT_PATH
@@ -17,6 +20,11 @@
 #define CENTER 				9998
 #endif
 
+
+#include "_includes/_common_16bit_colors.h"
+//#include "_settings/SSD_13XX_settings.h"
+#include "_includes/sumotoy_imageDescription.h"
+#include "_includes/sumotoy_iconDescription.h"
 enum SSD_13XX_centerMode{NORM=0,SCREEN,REL_X,REL_Y,REL_XY};
 
 

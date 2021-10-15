@@ -4,21 +4,22 @@
 // OLED method aliases.
 #ifdef USE_MINE
 
+#include "_includes/_common_16bit_colors.h"
 #include "SSD/Text_Engine.h"
-#include "SSD/_fonts/Terminal_9.c"
 #include "SSD/Graphics_Engine.h"
+#include "SSD/_fonts/Terminal_9.c"
 #include "SSD/SSD_Util.h"
 
-#define _GetWidth _oled->width
-#define _GetHeight _oled->height
+#define _GetWidth _oled->getScreenWidth
+#define _GetHeight _oled->getScreenHeight
 #define _FillScreen _oled->fillScreen
 #define _DrawLine _oled->drawLine
-#define _DrawHLine _oled->drawFastHLine
-#define _DrawVLine _oled->drawFastVLine
-#define _DrawFilledRectangle _oled->fillRect
-#define _DrawRectangle _oled->drawRect
-#define _SetRotation _oled->setRotation
-#define _ChangeMode _oled->changeMode
+#define _DrawHLine(x, y, w, c) _oled->drawLine(x, y, x + w, y, c)
+#define _DrawVLine(x, y, h, c) _oled->drawLine(x, y, x, y + h, c)
+#define _DrawFilledRectangle(x, y, w, h, c1, c2) _oled->drawRectangle(x, y, w, h, c1, c2, true)
+#define _DrawRectangle(x, y, w, h, c1) _oled->drawRectangle(x, y, w, h, c1, c1, false)
+#define _SetRotation _oled->setScreenRotation
+#define _ChangeMode _oled->setScreenMode
 
 #define _SetCursor _texter->setCursor
 #define _SetTextColor _texter->setTextColor
@@ -107,7 +108,7 @@ void benchmark_setup() {
 
     // Create OLED.
     _oled = new SSD_13XX(spi, rstPin);
-    _oled->begin();
+    _oled->init();
 
     // Create text and graphics engines.
     _texter = new Text_Engine();
@@ -116,10 +117,11 @@ void benchmark_setup() {
     _graphics->begin(_oled);
 
     #else
-    oled_ = new SSD_13XX(NEW_SSD_ARGS);
-    oled_->begin(false);
+    _oled = new SSD_13XX(csPin, dcPin, rstPin, sdoPin, sckPin);
+    _oled->begin(false);
     #endif
 }
+
 void benchmark_run2() {
     #ifdef USE_MINE
     SerialPrintf("Using library: mine\r\n");
@@ -128,7 +130,11 @@ void benchmark_run2() {
     #endif
 
     _FillScreen(0x0000);
+    #ifdef USE_MINE
     _ChangeMode(SSD_ScreenConfig::NORMAL);
+    #else
+    _ChangeMode(SSD_13XX_modes::NORMAL);
+    #endif
     delay(1000);
     testFilledRects(YELLOW, MAGENTA);
 }
@@ -140,19 +146,23 @@ void benchmark_run() {
     SerialPrintf("Using library: sumotoy\r\n");
     #endif
 
-    for (uint8_t rotation = 0; rotation < 4; rotation++) {
+    for (uint8_t rotation = 0; rotation < 5; rotation++) {
         _FillScreen(0x0000);
         _SetRotation(
             #ifdef USE_MINE
             //(SSD_13xx_Rotation_Modes_t)rotation
-            (SSD_ScreenConfig::Rotations)rotation
+            (SSD_ScreenConfig::Rotations)(rotation % 4)
             #else
             rotation
             #endif
         );
-        SerialPrintf("Benchmark: \r\n    rotation = %d\r\n", rotation);
+        SerialPrintf("Benchmark: \r\n    rotation = %d\r\n", (rotation % 4));
 
+        #ifdef USE_MINE
         _ChangeMode(SSD_ScreenConfig::NORMAL);
+        #else
+        _ChangeMode(SSD_13XX_modes::NORMAL);
+        #endif
         delay(1000);
 
         testFillScreen(NAVY);
@@ -182,7 +192,11 @@ void benchmark_run() {
         testFilledRoundRects();
         delay(1000);
 
+        #ifdef USE_MINE
         _ChangeMode(SSD_ScreenConfig::DISP_OFF);
+        #else
+        _ChangeMode(SSD_13XX_modes::DISP_OFF);
+        #endif
         SerialPrintf("\r\n");
     }
 }
@@ -295,13 +309,11 @@ void testFilledRects(uint16_t color1, uint16_t color2) {
 
     n = min(_GetWidth(), _GetHeight());
 
-    for (i = n; i > 0; i -= 6) {
+    for (i = n; i > 0; i -= 10) {
         i2 = i / 2;
         start = micros();
         _DrawFilledRectangle(cx - i2, cy - i2, i, i, color1, color2);
         t += micros() - start;
-    
-        _DrawRectangle(cx - i2, cy - i2, i, i, color2);
     }
 
     SerialPrintf("    Filled rects: %d uSec\r\n", t);

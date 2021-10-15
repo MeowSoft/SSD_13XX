@@ -9,17 +9,35 @@ PREFIX int SSD_13XX::_calculateDelay(
     int16_t h,
     int maxDly
 ) {
-    if (w <= 0 || h <= 0) return CMD_DLY_MIN;
-    return map(w*h,2,SSD_CGRAM,CMD_DLY_MIN,maxDly);
+    if (w <= 0 || h <= 0) return displayData->minDelay;
+    return map(
+        w * h, 
+        2, 
+        SSD_WIDTH * SSD_HEIGHT, 
+        displayData->minDelay, 
+        maxDly
+    );
 }
 
 PREFIX bool SSD_13XX::_checkBounds(
     int16_t x,
     int16_t y
 ) {
-    bool xInBounds = (x < _screenConfig.getWidth());
-    bool yInBounds = (y < _screenConfig.getHeight());
-    return (xInBounds && yInBounds);
+    uint16_t w = _screenConfig.getWidth();
+    uint16_t h = _screenConfig.getHeight();
+    return ( x < w && y < h);
+}
+
+PREFIX void SSD_13XX:: _coerceBounds(
+    int16_t& x,
+    int16_t& y
+) {
+    uint16_t w = _screenConfig.getWidth();
+    uint16_t h = _screenConfig.getHeight();
+    if (x < 0) x = 0;
+    if (x >= w) x = w - 1;
+    if (y < 0) y = 0;
+    if (y >= h) y = h - 1;
 }
 
 PREFIX void SSD_13XX::_setAddressWindow(
@@ -34,7 +52,8 @@ PREFIX void SSD_13XX::_setAddressWindow(
         swapVals(rowEnd, columnEnd);
     }
 
-    #if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+    #if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
     _spi.writeCommand8(CMD_SETCOLUMN);
     _spi.writeCommand8(rowStart); 
     _spi.writeCommand8(rowEnd);
@@ -106,10 +125,10 @@ PREFIX void SSD_13XX::_drawRectangle(
     }
 
     // If rectangle is out of screen bounds then bail.
-	if (x >= _screenConfig.getWidth() || y >= _screenConfig.getHeight()) return;
+	if (!_checkBounds(x, y)) return;
 
 	// Get draw delay.
-    int dly = _calculateDelay(w, h, CMD_DLY_FILL);
+    int dly = _calculateDelay(w, h, displayData->fillDelay);
 
     // Get colors as individual RGB values.
 	uint8_t r1, g1, b1, r2, g2, b2;
@@ -148,18 +167,18 @@ PREFIX void SSD_13XX::_drawRectangle(
     // SSD_1351:
     #else
     if (filled){
-        _drawRectangleWithGradient(x,y,w,h,color1,color2);
+        _drawGradient(x, y, w, h, color1, color2);
     } else {
         //TODO Grandient? (and color2)
         _drawHorizontalLine(x, y, w, color1);
-        _drawHorizontalLine(x, (y+h)-1, w, color1);
+        _drawHorizontalLine(x, (y + h) - 1, w, color1);
         _drawVerticalLine(x, y, h, color1);
-        _drawVerticalLine((x+w)-1, y, h, color1);	
+        _drawVerticalLine((x + w) - 1, y, h, color1);	
     }
     #endif
 }
 
-PREFIX void SSD_13XX::_drawRectangleWithGradient(
+PREFIX void SSD_13XX::_drawGradient(
     int16_t x, 
     int16_t y, 
     int16_t w, 
@@ -172,7 +191,7 @@ PREFIX void SSD_13XX::_drawRectangleWithGradient(
     if (w < 2 && h < 2) {
 
         // Draw the pixel and we're done.
-        _drawPixel(x,y,color1);
+        _drawPixel(x, y, color1);
         return;
     }
 
@@ -222,7 +241,7 @@ PREFIX void SSD_13XX::_drawRectangleWithGradient(
         bB = (((1.0 - pos) * b1) + (pos * b2));
     
         // Write color data.
-        _spi.writeData16Multi(SSD_Util::Color565(rR,gG,bB),w);
+        _spi.writeData16Multi(SSD_Util::Color565(rR, gG, bB), w);
         
     // Increment row count.
     } while (rowCount++ < h);

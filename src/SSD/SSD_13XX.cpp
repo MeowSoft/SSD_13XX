@@ -1,167 +1,63 @@
-/*=========================================================================================
-	Part of SSD_13XX library
-    Copyright (c) 2014/2015/2016, .S.U.M.O.T.O.Y., coded by Max MC Costa.
-
-    SSD_13XX Library is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    SSD_13XX Library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
-===========================================================================================*/
-
 #include "SSD_13XX.h"
-
 #include "SSD_Util.h"
 
-
-
-/* #region Transaction methods: */
-
-void SSD_13XX::setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
-{
-	_spi.startTransaction();
-	_setAddressWindow(x0,y0,x1,y1,true);
-	_spi.deselectAndEndTransaction();
-}
-
-void SSD_13XX::drawPixel(int16_t x, int16_t y, uint16_t color)
-{
-	//if (boundaryCheck(x,y)) return;
-	//if ((x < 0) || (y < 0)) return;
-	_spi.startTransaction();
-	_drawPixel(x,y,color);
-	_spi.deselectAndEndTransaction();
-}
-
-/*
-draw LINE
-*/
-void SSD_13XX::drawLine(int16_t x0, int16_t y0,int16_t x1, int16_t y1, uint16_t color)
-{
-    int16_t w = _screenConfig.getWidth();
-    int16_t h = _screenConfig.getHeight();
-	if (x1 >= w) x1 = w-1;
-	if (y1 >= h) y1 = h-1;
-	_spi.startTransaction();
-	_drawLine(x0,y0,x1,y1,color/*,200*/);
-	_spi.deselectAndEndTransaction();
-}
-
-/*
-draw fast vertical line
-this uses fast contiguos commands method but opens SPi transaction and enable CS
-then set CS hi and close transaction
-*/
-void SSD_13XX::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
-{
-	/*
-	if (boundaryCheck(x,y)) return;
-	if (((y + h) - 1) >= _height) h = _height - y;
-	h = sizeCheck(y,h,_height);
-	*/
-	if (x >= _screenConfig.getWidth()-1) return;
-	if (y >= _screenConfig.getHeight()-1) return;
-	_spi.startTransaction();
-	_drawVerticalLine(x,y,h,color);
-	_spi.deselectAndEndTransaction();
-}
-
-
-/*
-draw fast horizontal line
-this uses fast contiguos commands method but opens SPi transaction and enable CS
-then set CS hi and close transaction
-*/
-void SSD_13XX::drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
-{
-	/*
-	if (boundaryCheck(x,y)) return;
-	if (((x + w) - 1) >= _width)  w = _width - x;
-	w = sizeCheck(x,w,_width);
-	*/
-	if (x >= _screenConfig.getWidth()-1) return;
-	if (y >= _screenConfig.getHeight()-1) return;
-	_spi.startTransaction();
-	_drawHorizontalLine(x,y,w,color);
-	_spi.deselectAndEndTransaction();
-}
-
-/*
-fill RECT
-*/
-//+++++++++OK
-void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
-{
-	_spi.startTransaction();
-	_drawRectangle(x, y, w, h, color,color,true);
-	_spi.deselectAndEndTransaction();
-}
-
-/*
-fill RECT with gradient
-*/
-void SSD_13XX::fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2)
-{
-	if (!_checkBounds(x,y)) return;
-	_spi.startTransaction();
-	_drawRectangleWithGradient(x,y,w,h,color1,color2);
-	_spi.deselectAndEndTransaction();
-}
-
-
-/*
-draw rect
-*/
-
-//+++++++++OK
-void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
-{
-	drawRect(x,y,w,h,color,color,false);
-}
-
-//+++++++++OK
-void SSD_13XX::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2,bool filled)
-{
-	if (x + w >= _screenConfig.getWidth()) return;
-	if (y + h >= _screenConfig.getHeight()) return;
-	_spi.startTransaction();
-	_drawRectangle(x, y, w, h, color1,color2,filled);
-	_spi.deselectAndEndTransaction();
-}
-
-
-/* #endregion */
-
-/*********************************************************
-********************** constructors **********************
-**********************************************************/
-
-
-SSD_13XX::SSD_13XX(SPI_Driver spi, const uint8_t rstPin) {
+/**
+ * Constructor.
+ */
+SSD_13XX::SSD_13XX(
+    SPI_Driver spi, 
+    const uint8_t rstPin
+) {
     _rstPin  = rstPin;
     _spi = spi;
 }
 
+// ===================================================
+/* #region Screen configuration methods:            */
+// ===================================================
 
-/*********************************************************
-************** Var init and SPI preparation **************
-**********************************************************/
-void SSD_13XX::begin()
-{
-//initialize Vars
-_screenConfig.init(this);
+void SSD_13XX::init(void) {
 
-	setColorDepth(SSD_COLORDEPTH);
-	setColorOrder(SSD_RGBORDER);
+    // Initialize screen config.
+    _screenConfig.init(this);
+	_screenConfig.setColorDepth(displayData->colorDepth);
+	_screenConfig.setColorOrder(displayData->colorOrder);
 
-	if (_rstPin != 255) {
+    // Reset screen hardware.
+	resetScreen();
+	delay(30);
+
+    // Start SPI.
+	_spi.startTransaction();
+
+    // Initialize the SSD chip.
+	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+	    _init133x();
+	#elif defined(SSD_1351_REGISTERS_H)
+	    _init1351();
+	#endif
+
+    // Set normal display mode and turn on.
+	_spi.writeCommand8(CMD_NORMALDISPLAY);
+	_spi.writeCommand8AndDeselect(CMD_DISPLAYON);
+
+    // Finish SPI.
+	_spi.endTransaction();
+	delay(60);
+
+    // Set screen rotation.
+	setScreenRotation(SSD_ScreenConfig::ROTATION_LANDSCAPE);
+
+    // Clear screen.
+	fillScreen(0);
+	delay(1);
+
+    // Set mode in screen config.
+	_screenConfig.changeMode(SSD_ScreenConfig::NORMAL);
+}
+
+void SSD_13XX::resetScreen(void) {
+    if (_rstPin != 255) {
 		pinMode(_rstPin, OUTPUT);
 		digitalWrite(_rstPin, HIGH);
 		delay(10);
@@ -170,413 +66,601 @@ _screenConfig.init(this);
 		digitalWrite(_rstPin, HIGH);
 		delay(10);
 	}
-	/* -----------------------------------------------------------
-	------------------- Chip Initialization ----------------------
-	-------------------------------------------------------------*/
-	delay(30);
-	_spi.startTransaction();
-	#if defined(_SSD_1331_96X64_H) || defined(_SSD_1332_96X64_H)
-		
-		_spi.writeCommand8(CMD_DISPLAYOFF);
-		_writeRegister(CMD_CLOCKDIV,SSD_CLOCKDIV);
-		_writeRegister(CMD_SETMULTIPLEX,SSD_SETMULTIPLEX);
-		_writeRegister(CMD_STARTLINE,SSD_STARTLINE);
-		_writeRegister(CMD_DISPLAYOFFSET,SSD_DISPLAYOFFSET);
-		// _writeRegister(CMD_PHASEPERIOD,SSD_PHASEPERIOD);
-		_writeRegister(CMD_SETCONFIG,SSD_SETMASTER);
-		_writeRegister(CMD_POWERMODE,SSD_POWERMODE);
-		_writeRegister(CMD_MASTERCURRENT,SSD_MASTERCURRENT);
-		#if defined(SSD_GAMMASET)
-			_spi.writeCommand8(CMD_GRAYSCALE); for (uint8_t i =0;i<32;i++){_spi.writeCommand8(SSD_GRAYTABLE[i]);}
-		#else
-			_spi.writeCommand8(CMD_LINEARGRAY);
-		#endif
-		_writeRegister(CMD_CONTRASTA,SSD_CONTRAST_A);
-		_writeRegister(CMD_CONTRASTB,SSD_CONTRAST_B);
-		_writeRegister(CMD_CONTRASTC,SSD_CONTRAST_C);
-		#if !defined(_SSD_1331_96X64_H)
-		_writeRegister(CMD_VPACOLORLVL,SSD_VPACOLORLVL);
-		_writeRegister(CMD_VPBCOLORLVL,SSD_VPBCOLORLVL);
-		_writeRegister(CMD_VPCCOLORLVL,SSD_VPCCOLORLVL);
-		#else
-			_spi.writeCommand8(CMD_DIMMODESET);
-			_spi.writeCommand8(0);
-			_spi.writeCommand8(SSD_DIMMDESET_A);
-			_spi.writeCommand8(SSD_DIMMDESET_B);
-			_spi.writeCommand8(SSD_DIMMDESET_C);
-			_spi.writeCommand8(SSD_DIMMDESET_PC);
-			_writeRegister(CMD_PHASEPERIOD,SSD_PRECHARGE);
-			_writeRegister(CMD_PRECHARGEA,SSD_PRECHARGE_A);
-			_writeRegister(CMD_PRECHARGEB,SSD_PRECHARGE_B);
-			_writeRegister(CMD_PRECHARGEC,SSD_PRECHARGE_C);
-			_writeRegister(CMD_PRECHARGELEVEL,SSD_PRECHARGELEVEL);
-		#endif
-		_writeRegister(CMD_VCOMH,SSD_VCOMH);
-		_setFillState(1);
-	#elif defined(_SSD_1351_96X64_H) || defined(_SSD_1351_128X96_H) || defined(_SSD_1351_128X128_H)
-		if (SSD_COMSPLIT == 1){
-			_remapReg |= ((1 << 5));
-		} else {
-			_remapReg |= ((0 << 5));
-		}
-		_writeRegister(CMD_CMDLOCK,SSD_COMMANDLOCK1);
-		_writeRegister(CMD_CMDLOCK,SSD_COMMANDLOCK2);
-		_spi.writeCommand8(CMD_DISPLAYOFF);
-		_writeRegister(CMD_CLOCKDIV,SSD_CLOCKDIV);
-		_writeRegister(CMD_MUXRATIO,SSD_MUXRATIO);
-		_writeRegister(CMD_STARTLINE,SSD_STARTLINE);
-		_writeRegister(CMD_DISPLAYOFFSET,SSD_DISPLAYOFFSET);
-		_writeRegister(CMD_SETGPIO,SSD_SETGPIO);
-		_writeRegister(CMD_FUNCTIONSELECT,SSD_FUNCTIONSELECT);
-		_spi.writeCommand8(CMD_SETVSL);
-		_spi.writeData8(SSD_SETVSL_A);_spi.writeData8(SSD_SETVSL_B);_spi.writeData8(SSD_SETVSL_C);
-		_spi.writeCommand8(CMD_CONTRASTABC);
-		_spi.writeData8(SSD_CONTRAST_A);_spi.writeData8(SSD_CONTRAST_B);_spi.writeData8(SSD_CONTRAST_C);
-		_writeRegister(CMD_MASTERCURRENT,SSD_MASTERCURRENT);
-		_spi.writeCommand8(CMD_DISPLAYENHANCE);
-		if (SSD_ENHANCE){
-			_spi.writeData8(0xA4);
-		} else {
-			_spi.writeData8(0x00);
-		}
-		_spi.writeData8(0x00);
-		_spi.writeData8(0x00);
-		#if defined(SSD_GAMMASET)
-			//_spi.writeCommand8(CMD_GRAYSCALE); for (uint8_t i =0;i<32;i++){_spi.writeData8(SSD_GRAYTABLE[i]);}
-		#else
-			_spi.writeCommand8(CMD_USELUT);
-		#endif
-		// phase here
-		_writeRegister(CMD_PRECHARGE,SSD_PRECHARGE);
-		_writeRegister(CMD_PRECHARGE2,SSD_PRECHARGE2);
-		_writeRegister(CMD_VCOMH,SSD_VCOMH);
-	#endif
-	//_setAddressWindow(0,0,SSD_WIDTH-1,SSD_HEIGHT-1,false);// ???
-	//_spi.writeData16Multi(_defaultBgColor, SSD_CGRAM);//???
-	//Normal Display and turn ON
-	_spi.writeCommand8(CMD_NORMALDISPLAY);
-	_spi.writeCommand8AndDeselect(CMD_DISPLAYON);
-	_spi.endTransaction();
-	delay(60);
-	setRotation(SSD_ScreenConfig::ROTATION_LANDSCAPE);
-	fillScreen(BLACK);
-
-	delay(1);
-	changeMode(SSD_ScreenConfig::NORMAL);
 }
 
-
-
-void SSD_13XX::setBrightness(uint8_t brightness)
-{
-	
-	if (brightness > 15) brightness = 15;
-	_spi.startTransaction();
-		_spi.writeCommand8(CMD_MASTERCURRENT);
-		#if defined(_SSD_USECMDASDATA)
-			_spi.writeCommand8AndDeselect(brightness);
-		#else
-			_spi.writeData8AndDeselect(brightness);
-		#endif
-	_spi.endTransaction();
+void SSD_13XX::setScreenMode(const enum SSD_ScreenConfig::ScreenModes mode) {
+	_screenConfig.changeMode(mode);
 }
 
-/*********************************************************
-***************** Basic display commands *****************
-**********************************************************/
-
-/*
-This change the mode of the display as:
-	NORMAL: Normal mode.
-	PWRSAVE: Consume much less power
-	PROTECT: Display protect his serial comm, accept only a change mode as normal to exit protected state
-	INVERT: It invert the display
-	DISP_ON: Turn on display (if off) and enable backlight pin if used
-	DISP_DIM: The all display goe dim
-	DISP_OFF: The opposite of above
-*/
-void SSD_13XX::changeMode(const enum SSD_ScreenConfig::ScreenModes m)
-{
-	_screenConfig.changeMode(m);
-}
-
-uint8_t SSD_13XX::getMode(void)
-{
+SSD_ScreenConfig::ScreenModes SSD_13XX::getScreenMode(void) {
 	return _screenConfig.getMode();
 }
 
-
-void SSD_13XX::copyArea(int16_t sx0, int16_t sy0, int16_t sx1, int16_t sy1,int16_t dx, int16_t dy)
-{
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_screenConfig.isPortrait()){//not tested yet
-		swapVals(sx0,sy0);
-		swapVals(sx1,sy1);
-		swapVals(dx,dy);
-	}
-	_spi.startTransaction();
-	_spi.writeCommand8(CMD_DRAWCOPY);
-		_spi.writeCommand8(sx0 & 0xFF);
-		_spi.writeCommand8(sy0 & 0xFF);
-		_spi.writeCommand8(sx1 & 0xFF);
-		_spi.writeCommand8(sy1 & 0xFF);
-		_spi.writeCommand8(dx & 0xFF);
-		_spi.writeCommand8AndDeselect(dy & 0xFF);
-	_spi.endTransaction();
-	#endif
+void SSD_13XX::setScreenRotation(SSD_ScreenConfig::Rotations rotation) {
+    _screenConfig.setRotation(rotation);
+    _screenConfig.writeRemap();
 }
 
-void SSD_13XX::dimArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
-{
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_screenConfig.isPortrait()){//not tested yet
-		swapVals(x0,y0);
-		swapVals(x1,y1);
-	}
-	_spi.startTransaction();
-	_spi.writeCommand8(CMD_DIMWINDOW);
-		_spi.writeCommand8(x0 & 0xFF);
-		_spi.writeCommand8(y0 & 0xFF);
-		_spi.writeCommand8(x1 & 0xFF);
-		_spi.writeCommand8AndDeselect(y1 & 0xFF);
-	_spi.endTransaction();
-	#endif
-}
-
-void SSD_13XX::moveArea(int16_t x0, int16_t y0, int16_t x1, int16_t y1)
-{
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (_screenConfig.isPortrait()){//not tested yet
-		swapVals(x0,y0);
-		swapVals(x1,y1);
-	}
-	_spi.startTransaction();
-	_spi.writeCommand8(CMD_CLRWINDOW);
-		_spi.writeCommand8(x0 & 0xFF);
-		_spi.writeCommand8(y0 & 0xFF);
-		_spi.writeCommand8(x1 & 0xFF);
-		_spi.writeCommand8AndDeselect(y1 & 0xFF);
-	_spi.endTransaction();
-	#endif
-}
-
-uint8_t SSD_13XX::getRotation(void)
-{
+SSD_ScreenConfig::Rotations SSD_13XX::getScreenRotation(void) {
 	return _screenConfig.getRotation();
 }
 
-void SSD_13XX::setColorDepth(uint8_t depth)
-{
-	_screenConfig.setColorDepth(depth);
-}
-
-void SSD_13XX::setColorOrder(bool order)
-{
-	_screenConfig.setColorOrder(order);
-}
-
-//+++++++++OK
-void SSD_13XX::setRotation(SSD_ScreenConfig::Rotations m)
-{
-    _screenConfig.setRotation(m);
-    _screenConfig.writeRemap();
-
-
-}
-
-//+++++++++OK
-int16_t SSD_13XX::width(void) const {
-	return _screenConfig.getWidth();
-}
-
-//+++++++++OK
-int16_t SSD_13XX::height(void) const {
+int16_t SSD_13XX::getScreenHeight(void) const {
 	return _screenConfig.getHeight();
 }
 
-//+++++++++OK
-int16_t SSD_13XX::cgWidth(void) const {
-	return SSD_WIDTH;
+int16_t SSD_13XX::getScreenWidth(void) const {
+	return _screenConfig.getWidth();
 }
 
-//+++++++++OK
-int16_t SSD_13XX::cgHeight(void) const {
-	return SSD_HEIGHT;
+void SSD_13XX::setScreenColorDepth(uint8_t depth) {
+	_screenConfig.setColorDepth(depth);
 }
 
+void SSD_13XX::setScreenColorOrder(ColorOrder_t order) {
+	_screenConfig.setColorOrder(order);
+}
 
-/*********************************************************
-************************   scroll  ***********************
-**********************************************************/
+void SSD_13XX::setAddressWindow(
+    int16_t x0, 
+    int16_t y0, 
+    int16_t x1, 
+    int16_t y1
+) {
+	_spi.startTransaction();
+	_setAddressWindow(x0, y0, x1, y1, true);
+	_spi.deselectAndEndTransaction();
+}
 
-/*
-a:Set number of column as horizontal scroll offset Range: 0d-95d ( no horizontal scroll if equals to 0)
-b:Define start row address
-c:Set number of rows to be horizontal scrolled B[5:0]+C[6:0] <=64
-d:Set number of row as vertical scroll offset Range: 0d-63d ( no vertical scroll if equals to 0)
-e:Set time interval between each scroll step
-*/
-void SSD_13XX::defineScrollArea(int16_t a, int16_t b, int16_t c, int16_t d, uint8_t e)
-{
-	if (b+c > SSD_HEIGHT) return;
-	uint8_t spd = 0;
-	e = e % 4;
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+void SSD_13XX::setScreenBrightness(uint8_t brightness) {
+	// Clamp to 15.
+	if (brightness > 15) brightness = 15;
+
+    // Set brightness.
+	_spi.startTransaction();
+    _writeRegister(CMD_MASTERCURRENT, brightness);
+	_spi.endTransaction();
+}
+
+/* #endregion */
+// ===================================================
+
+// ===================================================
+/* #region Scroll methods:                          */
+// ===================================================
+
+void SSD_13XX::defineScrollArea(
+    uint8_t a, 
+    uint8_t b, 
+    uint8_t c, 
+    uint8_t d, 
+    uint8_t e
+) {
+    // If scroll area is off screen then bail.
+	if (b + c > SSD_HEIGHT) return;
+
+    // Scroll speed bitfield.
+	uint8_t scrollSpeed = 0;
+
+	#if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
+
+        // Set scroll speed field.
 		if (e == 0){
-			spd = 0b00000000;
+			scrollSpeed = 0b00000000;
 		} else if (e == 1){
-			spd = 0b00000001;
+			scrollSpeed = 0b00000001;
 		} else if (e == 2){
-			spd = 0b00000010;
+			scrollSpeed = 0b00000010;
 		} else {
-			spd = 0b00000011;
+			scrollSpeed = 0b00000011;
 		}
-		_spi.startTransaction();
-		_spi.writeCommand8(CMD_SCROLL_SET);
 
-		_spi.writeCommand8(a & 0xFF);
-		_spi.writeCommand8(b & 0xFF);
-		_spi.writeCommand8(c & 0xFF);
-		_spi.writeCommand8(d & 0xFF);
-		_spi.writeCommand8AndDeselect(spd);
+        // Set scroll area command.
+		_spi.startTransaction();
+		_spi.writeCommand8(CMD_SCROLL_SETUP);
+		_spi.writeCommand8(a);
+		_spi.writeCommand8(b);
+		_spi.writeCommand8(c);
+		_spi.writeCommand8(d);
+		_spi.writeCommand8AndDeselect(scrollSpeed);
 		_spi.endTransaction();
+
 	#elif defined(SSD_1351_REGISTERS_H)
-		if (e == 1){
-			spd |= ((1 << 0));
-		} else if (e == 2){
-			spd |= ((1 << 1));
-		} else if (e > 2) {
-			spd |= ((1 << 1) | (1 << 0));
+
+        // Set scroll speed field.
+		if (e == 0){
+			scrollSpeed = 0b00000001;
+		} else if (e == 1){
+			scrollSpeed = 0b00000010;
+		} else 
+			scrollSpeed = 0b00000011;
 		}
+
+        // Set scroll area command.
 		_spi.startTransaction();
 		_spi.writeCommand8(CMD_HORIZSCROLL);
-		_spi.writeData8(0b00000001);//0b10000001
-		_spi.writeData8(b & 0xFF);
-		_spi.writeData8(c & 0xFF);
+		_spi.writeData8(a);
+		_spi.writeData8(b);
+		_spi.writeData8(c);
 		_spi.writeData8(0);
-		_spi.writeData8AndDeselect(spd);
-		endTransaction();
+		_spi.writeData8AndDeselect(scrollSpeed);
+		_spi.endTransaction();
+
 	#endif
-	
 }
 
-
-boolean SSD_13XX::scroll(bool active)
-{
+void SSD_13XX::scroll(bool active) {
+    uint8_t cmd = active ? CMD_SCROLL_ON : CMD_SCROLL_OFF;
 	_spi.startTransaction();
-	if (active){
-		_spi.writeCommand8AndDeselect(CMD_SCROLL_ON);
-	} else {
-		_spi.writeCommand8AndDeselect(CMD_SCROLL_OFF);
-	}
+	_spi.writeCommand8AndDeselect(cmd);
 	_spi.endTransaction();
-	return active;
 }
 
+/* #endregion */
+// ===================================================
 
-/*********************************************************
-******************** Color Functions *********************
-**********************************************************/
+// ===================================================
+/* #region Area methods:                            */
+// ===================================================
 
+void SSD_13XX::copyArea(
+    int16_t sourceX, 
+    int16_t sourceY, 
+    int16_t width, 
+    int16_t height,
+    int16_t destinationX, 
+    int16_t destinationY
+) {
+    // Area copy is only available for the 1331 and 1332.
+    #if !defined(SSD_1331_REGISTERS_H) && \
+        !defined(SSD_1332_REGISTERS_H)
+        return;
+    #endif
 
-/*********************************************************
-****************** Graphic Functions *********************
-**********************************************************/
-//+++++++++OK
+    int16_t x0, y0, x1, y1;
+    x0 = sourceX;
+    y0 = sourceY;
+    x1 = x0 + width;
+    y1 = y0 + height;
 
-
-//+++++++++OK
-void SSD_13XX::fillScreen(uint16_t color)
-{
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-		uint8_t r1,g1,b1;
-		SSD_Util::_convertColor(color,r1,g1,b1);
-		_spi.startTransaction();
-		_setFillState(1);
-		_spi.writeCommand8(CMD_DRAWRECT);
-		_spi.writeCommand16(0);
-		_spi.writeCommand8(SSD_WIDTH-1);
-		_spi.writeCommand8(SSD_HEIGHT-1);
-		_writeColorData(r1,g1,b1);
-		_writeColorData(r1,g1,b1);
-		delayMicroseconds(CMD_DLY_FILL);//CMD_DLY_FILL
-	#else
-		_spi.startTransaction();
-		_setAddressWindow(
-				0,
-				0,
-				SSD_WIDTH - 1,
-				SSD_HEIGHT - 1,
-				false
-		);
-		_spi.writeData16Multi(color, SSD_CGRAM);
-	#endif
-	_spi.deselectAndEndTransaction();
-}
-
-
-
-//with gradient
-//+++++++++OK
-void SSD_13XX::fillScreen(uint16_t color1,uint16_t color2)
-{
-	_spi.startTransaction();
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	if (color1 != color2){
-		_drawRectangleWithGradient(0,0,SSD_WIDTH,SSD_HEIGHT,color1,color2);
-	} else {
-		uint8_t r1,g1,b1;
-		SSD_Util::_convertColor(color1,r1,g1,b1);
-		_setFillState(1);
-		_spi.writeCommand8(CMD_DRAWRECT);
-		_spi.writeCommand16(0);
-		_spi.writeCommand8(SSD_WIDTH-1);
-		_spi.writeCommand8(SSD_HEIGHT-1);
-		_writeColorData(r1,g1,b1);
-		_writeColorData(r1,g1,b1);
-		delayMicroseconds(CMD_DLY_FILL);
+    // Handle portrait mode.
+	if (_screenConfig.isPortrait()){
+		swapVals(x0, y0);
+		swapVals(x1, y1);
+		swapVals(destinationX, destinationY);
 	}
+
+    // Copy area.
+	_spi.startTransaction();
+	_spi.writeCommand8(CMD_COPYWINDOW);
+	_spi.writeCommand8(x0 & 0xFF);
+	_spi.writeCommand8(y0 & 0xFF);
+	_spi.writeCommand8(x1 & 0xFF);
+	_spi.writeCommand8(y1 & 0xFF);
+	_spi.writeCommand8(destinationX & 0xFF);
+	_spi.writeCommand8AndDeselect(destinationY & 0xFF);
+	_spi.endTransaction();
+}
+
+void SSD_13XX::dimArea(
+    int16_t x, 
+    int16_t y, 
+    int16_t width, 
+    int16_t height
+) {
+    // Area dim is only available for the 1331 and 1332.
+    #if !defined(SSD_1331_REGISTERS_H) && \
+        !defined(SSD_1332_REGISTERS_H)
+        return;
+    #endif
+
+    int16_t x0, y0, x1, y1;
+    x0 = x;
+    y0 = y;
+    x1 = x0 + width;
+    y1 = y0 + height;
+
+    // Handle portrait mode.
+	if (_screenConfig.isPortrait()){
+		swapVals(x0, y0);
+		swapVals(x1, y1);
+	}
+
+    // Dim area.
+	_spi.startTransaction();
+	_spi.writeCommand8(CMD_DIMWINDOW);
+	_spi.writeCommand8(x0 & 0xFF);
+	_spi.writeCommand8(y0 & 0xFF);
+	_spi.writeCommand8(x1 & 0xFF);
+	_spi.writeCommand8AndDeselect(y1 & 0xFF);
+	_spi.endTransaction();
+}
+
+void SSD_13XX::clearArea(
+    int16_t x, 
+    int16_t y, 
+    int16_t width, 
+    int16_t height
+) {
+    // Area move is only available for the 1331 and 1332.
+    #if !defined(SSD_1331_REGISTERS_H) && \
+        !defined(SSD_1332_REGISTERS_H)
+        return;
+    #endif
+
+    int16_t x0, y0, x1, y1;
+    x0 = x;
+    y0 = y;
+    x1 = x0 + width;
+    y1 = y0 + height;
+
+    // Handle portrait mode.
+	if (_screenConfig.isPortrait()){
+		swapVals(x0, y0);
+		swapVals(x1, y1);
+	}
+
+    // Move area.
+	_spi.startTransaction();
+	_spi.writeCommand8(CMD_CLRWINDOW);
+	_spi.writeCommand8(x0 & 0xFF);
+	_spi.writeCommand8(y0 & 0xFF);
+	_spi.writeCommand8(x1 & 0xFF);
+	_spi.writeCommand8AndDeselect(y1 & 0xFF);
+	_spi.endTransaction();
+}
+
+/* #endregion */
+// ===================================================
+
+// ===================================================
+/* #region Drawing methods:                         */
+// ===================================================
+
+void SSD_13XX::fillScreen(uint16_t color) {
+
+    // SSD_1331 or SSD_1332:
+	#if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
+
+        // Convert color data.
+		uint8_t r1, g1, b1;
+		SSD_Util::_convertColor(color, r1, g1, b1);
+
+        // Fill screen.
+		_spi.startTransaction();
+		_setFillState(1);
+		_spi.writeCommand8(CMD_DRAWRECT);
+		_spi.writeCommand16(0);
+		_spi.writeCommand8(SSD_WIDTH - 1);
+		_spi.writeCommand8(SSD_HEIGHT - 1);
+		_writeColorData(r1, g1, b1);
+		_writeColorData(r1, g1, b1);
+		delayMicroseconds(displayData->fillDelay);
+	    _spi.deselectAndEndTransaction();
+
+    // SSD_1351:
 	#else
-		if (color1 != color2){
-			drawRectangleWithGradient(0,0,SSD_WIDTH,SSD_HEIGHT,color1,color2);
-		} else {
-			_setAddressWindow(
-				0,
-				0,
-				SSD_WIDTH - 1,
-				SSD_HEIGHT - 1,
-				false
-			);
-			_spi.writeData16Multi(color1, SSD_CGRAM);
-		}
+
+        // Fill screen.
+		_spi.startTransaction();
+		_setAddressWindow(0, 0, SSD_WIDTH - 1, SSD_HEIGHT - 1, false);
+		_spi.writeData16Multi(color, SSD_WIDTH * SSD_HEIGHT);
+	    _spi.deselectAndEndTransaction();
+
 	#endif
+}
+
+void SSD_13XX::drawPixel(
+    int16_t x, 
+    int16_t y, 
+    uint16_t color
+) {
+	_spi.startTransaction();
+	_drawPixel(x, y, color);
 	_spi.deselectAndEndTransaction();
 }
 
-//+++++++++OK
-void SSD_13XX::clearScreen(void)
-{
-	fillScreen(BLACK);
-	//_cursorX = _cursorY = 0;
+void SSD_13XX::drawLine(
+    int16_t x0, 
+    int16_t y0,
+    int16_t x1, 
+    int16_t y1, 
+    uint16_t color
+) {
+	_spi.startTransaction();
+
+    // Horizontal line.
+    if (y0 == y1) {
+        _drawHorizontalLine(x0, y0, x1 - x0, color);
+    }
+
+    // Vertical line.
+    else if (x0 == x1) {
+        _drawVerticalLine(x0, y0, y1 - y0, color);
+    }
+
+    // Diagonal line.
+    else {
+	    _drawLine(x0, y0, x1, y1, color);
+    }
+
+	_spi.deselectAndEndTransaction();
+}
+
+void SSD_13XX::drawRectangle(
+    int16_t x, 
+    int16_t y, 
+    int16_t width, 
+    int16_t height, 
+    uint16_t color1,
+    uint16_t color2,
+    bool filled
+) {
+	_spi.startTransaction();
+	_drawRectangle(x, y, width, height, color1, color2, filled);
+	_spi.deselectAndEndTransaction();
+}
+
+void SSD_13XX::drawGradient(
+    int16_t x, 
+    int16_t y, 
+    int16_t width, 
+    int16_t height, 
+    uint16_t color1,
+    uint16_t color2
+) {
+	_spi.startTransaction();
+	_drawGradient(x, y, width, height, color1, color2);
+	_spi.deselectAndEndTransaction();
+}
+
+/* #endregion */
+// ===================================================
+
+// ===================================================
+/* #region Private methods:                         */
+// ===================================================
+
+void SSD_13XX::_init133x() {
+    _spi.writeCommand8(CMD_DISPLAYOFF);
+    _writeRegister(CMD_CLOCKDIV, displayData->clockDiv);
+
+    // Set MUX ratio.
+    _writeRegister(CMD_SETMULTIPLEX, displayData->muxRatio);
+    
+    // Set display start line and offset.
+    _writeRegister(CMD_STARTLINE, displayData->startLine);
+    _writeRegister(CMD_DISPLAYOFFSET, displayData->displayOffset);
+
+    _writeRegister(CMD_SETCONFIG, displayData->masterConfig);
+    _writeRegister(CMD_POWERMODE, VAL_POWERMODE_OFF);
+    _writeRegister(CMD_MASTERCURRENT, displayData->defaultBrightness);
+    _setGreyscaleTable();
+    _setContrast();
+    _setDimModeContrast();
+    
+_writeRegister(CMD_PHASEPERIOD, displayData->phasePeriod);
+    _setPreCharge();
+    _writeRegister(CMD_VCOMH, displayData->vcomH);
+    _setFillState(1);
+}
+
+void SSD_13XX::_init1351() {
+    #if defined(SSD_1351_REGISTERS_H)
+        _writeRegister(CMD_CMDLOCK, SSD_COMMANDLOCK1);
+        _writeRegister(CMD_CMDLOCK, SSD_COMMANDLOCK2);
+        _spi.writeCommand8(CMD_DISPLAYOFF);
+        _writeRegister(CMD_CLOCKDIV, displayData->clockDiv);
+
+
+    // Set MUX ratio.
+        _writeRegister(CMD_SETMULTIPLEX, displayData->muxRatio);
+
+        // Set display start line and offset.
+        _writeRegister(CMD_STARTLINE, displayData->startLine);
+        _writeRegister(CMD_DISPLAYOFFSET, displayData->displayOffset);
+
+        _writeRegister(CMD_SETGPIO, SSD_SETGPIO);
+        _writeRegister(CMD_SETCONFIG, displayData->masterConfig);
+
+        _spi.writeCommand8(CMD_SETVSL);
+        _spi.writeData8(displayData->vslA);
+        _spi.writeData8(displayData->vslB);
+        _spi.writeData8(displayData->vslC);
+
+        _setContrast();
+
+        _writeRegister(CMD_MASTERCURRENT, SSD_MASTERCURRENT);
+
+            _setEnhanceDisplay(SSD_ENHANCE)
+    
+
+        _setGreyscaleTable();
+        _setPreCharge();
+        _writeRegister(CMD_PHASEPERIOD, displayData->phasePeriod);
+        _writeRegister(CMD_VCOMH, displayData->vcomH);
+    #endif
+}
+
+/**
+ *                              1331:   1332:   1351:   Method:
+ * 
+ * CMD_SETCOLUMN                0x15    0x15    0x15    SSD_13XX::_setAddressWindow
+ * CMD_SETROW                   0x75    0x75    0x75    SSD_13XX::_setAddressWindow
+ * 
+ * CMD_WRITERAM                 ----    ----    0x5C
+ * CMD_READRAM                  ----    ----    0x5D
+ *      
+ * CMD_CONTRASTA                0x81    0x81    ----    SSD_13XX::_setContrast                  
+ * CMD_CONTRASTB                0x82    0x82    ----    SSD_13XX::_setContrast
+ * CMD_CONTRASTC                0x83    0x83    ----    SSD_13XX::_setContrast
+ * CMD_CONTRASTABC              ----    ----    0xC1    SSD_13XX::_setContrast
+ *      
+ * CMD_MASTERCURRENT            0x87    0x87    0xC7    SSD_13XX::setScreenBrightness
+ * 
+ * CMD_PRECHARGESPEEDA          0x8A    ----    ----    SSD_13XX::_setPreCharge
+ * CMD_PRECHARGESPEEDB          0x8B    ----    ----    SSD_13XX::_setPreCharge
+ * CMD_PRECHARGESPEEDC          0x8C    ----    ----    SSD_13XX::_setPreCharge
+ * 
+ * CMD_SETREMAP                 0xA0    0xA0    0xA0    SSD_ScreenConfig::writeRemap
+ * 
+ * CMD_STARTLINE                0xA1    0xA1    0xA1    init
+ * CMD_DISPLAYOFFSET            0xA2    0xA2    0xA2    init
+ * 
+ * CMD_NORMALDISPLAY            0xA4    0xA4    0xA6    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYALLON             0xA5    0xA5    0xA5    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYALLOFF            0xA6    0xA6    0xA4    SSD_ScreenConfig::changeMode
+ * CMD_INVERTDISPLAY            0xA7    0xA7    0xA7    SSD_ScreenConfig::changeMode
+ * 
+ * CMD_SETMULTIPLEX             0xA8    0xA8    0xCA    init
+ *      
+ * CMD_SETDIMLEVELS             0xAB    ----    ----    SSD_13XX::_setDimModeContrast
+ *      
+ * CMD_SETCONFIG                0xAD    0xAD    0xAB    init
+ * 
+ * CMD_DISPLAYDIM               0xAC    ----    ----    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYOFF               0xAE    0xAE    0xAF    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYON                0xAF    0xAF    0xAE    SSD_ScreenConfig::changeMode
+ *      
+ * CMD_POWERMODE                0xB0    0xB0    ----    SSD_ScreenConfig::changeMode
+ *
+ * CMD_DISPLAYENHANCE           ----    ----    0xB2    SSD_13XX::_setEnhanceDisplay
+ *
+ * CMD_PHASEPERIOD              0xB1    0xB1    0xB1    init
+ *      
+ * CMD_SETCLOCKDIV              0xB3    0xB3    0xB3    init
+ * 
+ * CMD_SETVSL                   ----    ----    0xB4    init
+ * 
+ * CMD_SETGPIO                  ----    ----    0xB5    init
+ * 
+ * CMD_PRECHARGEPERIOD          ----    ----    0xB6    SSD_13XX::_setPreCharge
+ *
+ * CMD_SETGRAYSCALE             0xB8    0xB8    0xB8    SSD_13XX::_setGreyscaleTable
+ * CMD_LINEARGRAY               0xB9    0xB9    0xB9    SSD_13XX::_setGreyscaleTable
+ * 
+ * CMD_PRECHARGELEVEL           0xBB    ----    0xBB    SSD_13XX::_setPreCharge
+ * CMD_PRECHARGELEVELA          ----    0xBB    ----    SSD_13XX::_setPreCharge
+ * CMD_PRECHARGELEVELB          ----    0xBC    ----    SSD_13XX::_setPreCharge
+ * CMD_PRECHARGELEVELC          ----    0xBD    ----    SSD_13XX::_setPreCharge
+ * 
+ * CMD_SETVCOMH                 0xBE    0xBE    0xBE    init
+ * 
+ * CMD_NOP                      0xE3    0xE3    0xE3
+ * CMD_LOCK                     0xFD    ----    0xFD
+ * 
+ * CMD_DRAWLINE                 0x21    0x21    ----
+ * CMD_DRAWRECT                 0x22    0x22    ----
+ * CMD_COPYWINDOW               0x23    0x23    ----
+ * CMD_DIMWINDOW                0x24    0x24    ----
+ * CMD_CLRWINDOW                0x25    0x25    ----
+ * CMD_FILLMODE                 0x26    0x26    ----
+ * 
+ * CMD_SCROLL_SETUP             0x27    ----    0x96
+ * CMD_SCROLL_OFF               0x2E    ----    0x9E
+ * CMD_SCROLL_ON                0x2F    ----    0x9F
+ */
+
+
+void SSD_13XX::_setContrast() {
+
+    // SSD_1331 or SSD_1332:
+    #if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
+        _writeRegister(CMD_CONTRASTA, displayData->contrastA);
+        _writeRegister(CMD_CONTRASTB, displayData->contrastB);
+        _writeRegister(CMD_CONTRASTC, displayData->contrastC);
+
+    // SSD_1351:
+    #elif defined(SSD_1351_REGISTERS_H)
+        _spi.writeCommand8(CMD_CONTRASTABC);
+        _spi.writeData8(displayData->contrastA);
+        _spi.writeData8(displayData->contrastB);
+        _spi.writeData8(displayData->contrastC);
+    #endif
+}
+
+void SSD_13XX::_setPreCharge() {
+    #if defined(SSD_1331_REGISTERS_H)
+        _writeRegister(CMD_PRECHARGESPEEDA, displayData->preChargeSpeedA);
+        _writeRegister(CMD_PRECHARGESPEEDB, displayData->preChargeSpeedB);
+        _writeRegister(CMD_PRECHARGESPEEDC, displayData->preChargeSpeedC);
+        _writeRegister(CMD_PRECHARGELEVEL, displayData->preChargeLevelA);
+    #elif defined(SSD_1332_REGISTERS_H)
+		_writeRegister(CMD_PRECHARGELEVELA, displayData->preChargeLevelA);
+		_writeRegister(CMD_PRECHARGELEVELB, displayData->preChargeLevelB);
+		_writeRegister(CMD_PRECHARGELEVELC, displayData->preChargeLevelC);
+    #elif defined(SSD_1351_REGISTERS_H)
+		_writeRegister(CMD_PRECHARGEPERIOD, displayData->preChargePeriod);
+        _writeRegister(CMD_PRECHARGELEVEL, displayData->preChargeLevel);
+    #endif
 }
 
 
 
+void SSD_13XX::_setDimModeContrast() {
+     #if defined(SSD_1331_REGISTERS_H)
+        _spi.writeCommand8(CMD_SETDIMLEVELS);
+        _spi.writeCommand8(0);
+        _spi.writeCommand8(displayData->dimModeA);
+        _spi.writeCommand8(displayData->dimModeB);
+        _spi.writeCommand8(displayData->dimModeC);
+        _spi.writeCommand8(displayData->dimModePreCharge);
+    #endif
+}
 
 
 
+void SSD_13XX::_setEnhanceDisplay(bool enhance) {
+    #if defined(SSD_1351_REGISTERS_H)
+    uint8_t* data = enhance 
+        ? VAL_DISPLAYENHANCE_ON 
+        : VAL_DISPLAYENHANCE_OFF;
 
+    _spi.writeCommand8(CMD_DISPLAYENHANCE);
+    _spi.writeData8(data[0]);
+    _spi.writeData8(data[1]);
+    _spi.writeData8(data[2]);
+    #endif
+}
+
+
+
+void SSD_13XX::_setGreyscaleTable() {
+
+    // If no custom values are defined...
+    if (displayData->grayTable == NULL) {
+
+        // Use the linear table.
+        _spi.writeCommand8(CMD_LINEARGRAY);
+        return;
+    }
+
+    // Otherwise, write custom table data.
+    _spi.writeCommand8(CMD_GRAYSCALE); 
+
+    for (uint8_t i = 0; i < 32; i++){
+        #if defined(SSD_CMD_DATA_BIT)
+            _spi.writeData8(displayData->grayTable[i]);
+        #else
+            _spi.writeCommand8(displayData->grayTable[i]);
+        #endif
+    }
+}
 
 void SSD_13XX::_writeRegister(
     const uint8_t cmd,
     uint8_t data
 ) {
 	_spi.writeCommand8(cmd);
-	#if defined(_SSD_USECMDASDATA)
-	_spi.writeCommand8(data);
-	#else
-	_spi.writeData8(data);
-	#endif
+
+    #if defined(SSD_CMD_DATA_BIT)
+	    _spi.writeData8(data);
+    #else
+	    _spi.writeCommand8(data);
+    #endif
 }
 
 void SSD_13XX::_drawHorizontalLine(
@@ -616,7 +700,7 @@ void SSD_13XX::_drawLine(
         defined(SSD_1332_REGISTERS_H)
 
         // Get delay for draw op.
-		int dly = _calculateDelay(x1 - x0, y1 - y0, CMD_DLY_LINE);
+		int dly = _calculateDelay(x1 - x0, y1 - y0, displayData->lineDelay);
 
         // Get color.
 		uint8_t r,g,b;
@@ -727,12 +811,11 @@ void SSD_13XX::_drawLine(
 #if defined(SSD_1331_REGISTERS_H) || \
     defined(SSD_1332_REGISTERS_H)
 	
-void SSD_13XX::_setFillState(bool filling)
-{
+void SSD_13XX::_setFillState(bool filling) {
     static bool _filled;
     if (filling != _filled){
         _filled = filling;
-        _spi.writeCommand8(CMD_FILL);
+        _spi.writeCommand8(CMD_FILLMODE);
         if (filling){
             _spi.writeCommand8(0x01);
         } else {
@@ -753,8 +836,5 @@ void SSD_13XX::_writeColorData(
 	
 #endif
 
-
-
-
-
-
+/* #endregion */
+// ===================================================
