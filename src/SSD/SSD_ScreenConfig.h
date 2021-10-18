@@ -2,10 +2,9 @@
 #define SSD_SCREEN_CONFIG_H
 
 #include <stdint.h>
-#include "Hardware/Displays/DisplayData.h"
 
 // Forward ref for SSD pointer.
-class SSD_13XX;
+class SSD_Core;
 
 class SSD_ScreenConfig {
 
@@ -55,7 +54,7 @@ class SSD_ScreenConfig {
          * This is needed for access to SPI methods to write 
          * the remap register and change modes. 
          */
-        void init(SSD_13XX* ssd);
+        void init(SSD_Core* ssd);
 
         /**
          * @brief Set the screen color depth.
@@ -68,9 +67,9 @@ class SSD_ScreenConfig {
         /**
          * @brief Set the screen color order.
          * 
-         * @param order Color order to use.
+         * @param useBGR If true, useBGR instead of RGB.
          */
-        void setColorOrder(ColorOrder_t order);
+        void setColorOrder(bool useBGR);
 
         /**
          * @brief Set screen rotation.
@@ -120,7 +119,7 @@ class SSD_ScreenConfig {
 	    ScreenModes	_currentMode;
 
         // This reference allows us to do SPI stuff from this class.
-        SSD_13XX* _ssd;
+        SSD_Core* _ssd;
 
         // Variable to hold the remap register contents.
         volatile uint8_t _remapReg;

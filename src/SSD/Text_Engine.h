@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "Print.h"
 
-#include "SSD_13XX.h"
+#include "SSD_Core.h"
 #include "_includes/_cpuCommons.h"
 #include "_includes/sumotoy_fontDescription.h"
 
@@ -34,7 +34,7 @@ class Text_Engine : public Print
 
 public:
 
-    void begin(SSD_13XX* ssd);
+    void begin(SSD_Core* ssd);
     void resetCursor();
     void setFont(const tFont *font);
     void setInternalFont(void);
@@ -53,7 +53,7 @@ public:
 
 private:
 
-    SSD_13XX* ssd_;
+    SSD_Core* ssd_;
 	uint8_t					_centerText;
 	volatile int16_t		 _cursorX, _cursorY;
     uint16_t 				_textForeground;

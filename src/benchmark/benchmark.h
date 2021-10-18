@@ -4,7 +4,7 @@
 #define USE_MINE
 
 #ifdef USE_MINE
-#include "SSD/SSD_13XX.h"
+#include "SSD/SSD_Core.h"
 #else
 #include <SSD_13XX.h>
 #endif

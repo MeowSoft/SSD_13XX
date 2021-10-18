@@ -85,12 +85,12 @@ void testFilledTriangles();
 void testRoundRects();
 void testFilledRoundRects();
 
-// The OLED.
-SSD_13XX* _oled;
-
 #ifdef USE_MINE
+SSD_Core* _oled;
 Text_Engine* _texter;
 Graphics_Engine* _graphics;
+#else
+SSD_13XX* _oled;
 #endif
 
 void log(const char* msg) {
@@ -107,7 +107,7 @@ void benchmark_setup() {
     spi.init(SPI_INIT_ARGS);
 
     // Create OLED.
-    _oled = new SSD_13XX(spi, rstPin);
+    _oled = new SSD_Core(spi, rstPin);
     _oled->init();
 
     // Create text and graphics engines.

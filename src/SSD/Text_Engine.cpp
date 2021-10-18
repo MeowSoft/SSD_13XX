@@ -31,7 +31,7 @@ void Text_Engine::closeTransaction() {
     ssd_->_spi.deselectAndEndTransaction();
 }
 
-void Text_Engine::begin(SSD_13XX* ssd) {
+void Text_Engine::begin(SSD_Core* ssd) {
     ssd_ = ssd;
     _cursorY  		= _cursorX 		= 0;
 	_textScaleX 	= _textScaleY 	= 1;

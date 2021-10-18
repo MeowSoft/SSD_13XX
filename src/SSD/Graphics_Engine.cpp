@@ -47,7 +47,7 @@ void Graphics_Engine::writedata16_cont(uint16_t d) {
 }
 /* #region Graphics_Engine */
 
-void Graphics_Engine::begin(SSD_13XX* ssd) {
+void Graphics_Engine::begin(SSD_Core* ssd) {
     ssd_ = ssd;
 
 	_arcAngleMax 	= 360;

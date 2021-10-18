@@ -1,11 +1,11 @@
 #include "SSD_ScreenConfig.h"
-#include "SSD_13XX.h"
+#include "SSD_Core.h"
 
-void SSD_ScreenConfig::init(SSD_13XX* ssd) {
+void SSD_ScreenConfig::init(SSD_Core* ssd) {
 
     // Initialize width and height.
-    _width = SSD_WIDTH;
-    _height = SSD_HEIGHT;
+    _width = SSD_DISPLAY_DATA_WIDTH;
+    _height = SSD_DISPLAY_DATA_HEIGHT;
 
     // Set rotation and screen mode.
     _rotation = ROTATION_LANDSCAPE;
@@ -18,7 +18,7 @@ void SSD_ScreenConfig::init(SSD_13XX* ssd) {
     _remapReg = 0;
 
     // Set COM split mode.
-    if (displayData->comSplit){
+    if (SSD_DISPLAY_DATA_HAS_COM_SPLIT){
         _remapReg |= ((1 << 5));
     } else {
         _remapReg |= ((0 << 5));
@@ -45,9 +45,8 @@ void SSD_ScreenConfig::setColorDepth(uint8_t depth) {
     _remapReg |= ((0 << 7) | (0 << 6));
 }
 
-void SSD_ScreenConfig::setColorOrder(ColorOrder_t order) {
+void SSD_ScreenConfig::setColorOrder(bool useBGR) {
     #if defined(SSD_1331_REGISTERS_H) || defined(SSD_1351_REGISTERS_H)
-    bool useBGR = (order == ColorOrder_t::COLOR_ORDER_BGR);
     _remapReg |= ((useBGR << 2));
     #endif
 }
@@ -162,8 +161,8 @@ void SSD_ScreenConfig::changeMode(ScreenModes mode) {
 void SSD_ScreenConfig::setRotation(Rotations rotation) {
 
     // Reset width and height.
-    _width  = SSD_WIDTH;
-    _height = SSD_HEIGHT;
+    _width  = SSD_DISPLAY_DATA_WIDTH;
+    _height = SSD_DISPLAY_DATA_HEIGHT;
 
     // Set rotation variable.
     _rotation = rotation;

@@ -1,25 +1,25 @@
-#include "SSD_13XX.h"
+#include "SSD_Core.h"
 
 #include "SSD_Util.h"
 
 #define PREFIX inline
 
-PREFIX int SSD_13XX::_calculateDelay(
+PREFIX int SSD_Core::_calculateDelay(
     int16_t w,
     int16_t h,
     int maxDly
 ) {
-    if (w <= 0 || h <= 0) return displayData->minDelay;
+    if (w <= 0 || h <= 0) return SSD_DISPLAY_DATA_MIN_DELAY;
     return map(
         w * h, 
         2, 
-        SSD_WIDTH * SSD_HEIGHT, 
-        displayData->minDelay, 
+        SSD_DISPLAY_DATA_WIDTH * SSD_DISPLAY_DATA_HEIGHT, 
+        SSD_DISPLAY_DATA_MIN_DELAY, 
         maxDly
     );
 }
 
-PREFIX bool SSD_13XX::_checkBounds(
+PREFIX bool SSD_Core::_checkBounds(
     int16_t x,
     int16_t y
 ) {
@@ -28,7 +28,7 @@ PREFIX bool SSD_13XX::_checkBounds(
     return ( x < w && y < h);
 }
 
-PREFIX void SSD_13XX:: _coerceBounds(
+PREFIX void SSD_Core:: _coerceBounds(
     int16_t& x,
     int16_t& y
 ) {
@@ -40,7 +40,7 @@ PREFIX void SSD_13XX:: _coerceBounds(
     if (y >= h) y = h - 1;
 }
 
-PREFIX void SSD_13XX::_setAddressWindow(
+PREFIX void SSD_Core::_setAddressWindow(
     uint16_t rowStart, 
     uint16_t columnStart, 
     uint16_t rowEnd, 
@@ -71,7 +71,7 @@ PREFIX void SSD_13XX::_setAddressWindow(
     #endif
 }
 
-PREFIX void SSD_13XX::_drawPixel(
+PREFIX void SSD_Core::_drawPixel(
     int16_t x, 
     int16_t y, 
     uint16_t color
@@ -80,7 +80,7 @@ PREFIX void SSD_13XX::_drawPixel(
     _spi.writeData16(color);
 }
 
-PREFIX void SSD_13XX::_drawRectangle(
+PREFIX void SSD_Core::_drawRectangle(
     int16_t x, 
     int16_t y, 
     int16_t w, 
@@ -128,7 +128,7 @@ PREFIX void SSD_13XX::_drawRectangle(
 	if (!_checkBounds(x, y)) return;
 
 	// Get draw delay.
-    int dly = _calculateDelay(w, h, displayData->fillDelay);
+    int dly = _calculateDelay(w, h, SSD_DISPLAY_DATA_FILL_DELAY);
 
     // Get colors as individual RGB values.
 	uint8_t r1, g1, b1, r2, g2, b2;
@@ -142,13 +142,13 @@ PREFIX void SSD_13XX::_drawRectangle(
     }
 
     // Get rectangle end x value or max screen width.
-    int16_t endX = ((x + w - 1) >= SSD_WIDTH) 
-        ? (SSD_WIDTH - 1)
+    int16_t endX = ((x + w - 1) >= SSD_DISPLAY_DATA_WIDTH) 
+        ? (SSD_DISPLAY_DATA_WIDTH - 1)
         : ((x + w) - 1);
 
     // Get rectangle end y value or max screen height.
-    int16_t endY = ((y + h - 1) >= SSD_HEIGHT) 
-        ? (SSD_HEIGHT - 1) 
+    int16_t endY = ((y + h - 1) >= SSD_DISPLAY_DATA_HEIGHT) 
+        ? (SSD_DISPLAY_DATA_HEIGHT - 1) 
         : ((y + h) - 1);
 
 	// Set fill command.
@@ -178,7 +178,7 @@ PREFIX void SSD_13XX::_drawRectangle(
     #endif
 }
 
-PREFIX void SSD_13XX::_drawGradient(
+PREFIX void SSD_Core::_drawGradient(
     int16_t x, 
     int16_t y, 
     int16_t w, 

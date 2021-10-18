@@ -10,7 +10,7 @@
 // Screen config class.
 #include "SSD_ScreenConfig.h"
 
-class SSD_13XX {
+class SSD_Core {
 
     public:
 
@@ -20,7 +20,7 @@ class SSD_13XX {
          * @param spi 
          * @param rstPin 
          */
-        SSD_13XX(
+        SSD_Core(
             SPI_Driver spi, 
             const uint8_t rstPin
         );
@@ -95,7 +95,7 @@ class SSD_13XX {
          * 
          * @param order Color order to use.
          */
-	    void setScreenColorOrder(ColorOrder_t order);
+	    void setScreenColorOrder(SSD_Hardware::ColorOrder_t order);
 
         /**
          * @brief Set the address window to write screen data to.

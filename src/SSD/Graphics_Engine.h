@@ -2,7 +2,7 @@
 #define GRAPHICS_ENGINE_H
 
 #include <stdint.h>
-#include "SSD_13XX.h"
+#include "SSD_Core.h"
 #include "_includes/sumotoy_imageDescription.h"
 #include "_includes/_common_16bit_colors.h"
 enum  SSD_13XX_iconMods{NONE=0,TRANSPARENT,REPLACE,BOTH};
@@ -11,7 +11,7 @@ class Graphics_Engine {
 
     public:
 
-        void begin(SSD_13XX* ssd);
+        void begin(SSD_Core* ssd);
 
         void 		drawEllipse(int16_t cx,int16_t cy,int16_t radiusW,int16_t radiusH,uint16_t color);
         void		drawCircle(int16_t x, int16_t y, int16_t radius, uint16_t color);
@@ -41,7 +41,7 @@ void 		drawArc(int16_t cx, int16_t cy, int16_t radius, int16_t thickness, float 
 
     private:
 
-    SSD_13XX* ssd_;
+    SSD_Core* ssd_;
 
 	float 					_arcAngleMax;
 	int 					_arcAngleOffset;
