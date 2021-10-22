@@ -1,7 +1,7 @@
-#ifndef _SSD_13XXLIB_H_
-#define _SSD_13XXLIB_H_
+#ifndef SSD_CORE_H
+#define SSD_CORE_H
 
-// Hardware config. (Select display type here)
+// Hardware config.
 #include "Hardware/Config.h"
 
 // SPI driver lib.
@@ -10,6 +10,36 @@
 // Screen config class.
 #include "SSD_ScreenConfig.h"
 
+/**
+ * @brief Core functionality for SSD_13XX driver.
+ * 
+ * Screen configuration methods:
+ *      SSD_Core - Constructor.
+ *      resetScreen - Reset the screen hardware.
+ *      setScreenMode - Set screen mode.
+ *      getScreenMode - Get screen mode.
+ *      setScreenRotation - Set screen rotation.
+ *      getScreenRotation - Get screen rotation.
+ *      getScreenHeight - Get screen height.
+ *      getScreenWidth - Get screen width.
+ *      setScreenBrightness - Set screen brightness level.
+ * 
+ * Scroll methods:
+ *      defineScrollArea - Set up scroll function.
+ *      scroll - Turn scroll on or off.
+ * 
+ * Area methods:
+ *      copyArea - Copy a rectangular screen area.
+ *      dimArea - Dim a screen area.
+ *      clearArea - Clear a screen area.
+ * 
+ * Drawing methods:
+ *      fillScreen - Fill the screen with a color.
+ *      drawPixel - Draw a single pixel.
+ *      drawLine - Draw a line.
+ *      drawRectangle - Draw a rectangle. (Filled or unfilled)
+ *      drawGradient - Draw a rectangular area filled with a color gradient.
+ */
 class SSD_Core {
 
     public:
@@ -28,11 +58,6 @@ class SSD_Core {
         // ===================================================
         /* #region Screen configuration methods:            */
         // ===================================================
-
-        /**
-         * @brief Initialize screen hardware.
-         */
-	    void init(void);
 
         /**
          * @brief Reset screen hardware.
@@ -81,36 +106,6 @@ class SSD_Core {
          * @return int16_t 
          */
 	    int16_t getScreenWidth(void) const;
-
-        /**
-         * @brief Set the screen color depth.
-         * 
-         * @param depth Can be 8, 16, or (SSD_1351 only) 18. 
-         * Other values will be coerced to one of these.
-         */
-	    void setScreenColorDepth(uint8_t depth);
-
-        /**
-         * @brief Set the screen color order.
-         * 
-         * @param order Color order to use.
-         */
-	    void setScreenColorOrder(SSD_Hardware::ColorOrder_t order);
-
-        /**
-         * @brief Set the address window to write screen data to.
-         * 
-         * @param x0 
-         * @param y0 
-         * @param x1 
-         * @param y1 
-         */
-	    void setAddressWindow(
-            int16_t x0, 
-            int16_t y0, 
-            int16_t x1, 
-            int16_t y1
-        );
 
         /**
          * @brief Set screen brightness level.
@@ -431,9 +426,14 @@ class SSD_Core {
         /* #region Private methods defined in SSD_Core.cpp:     */
         // =======================================================
 
+        /**
+         * @brief Initialize screen hardware.
+         */
+	    void _init(void);
+
         void _setPreCharge();
         void _setDimModeContrast();
-        void _setEnhanceDisplay(bool enhance);
+        void _setEnhanceDisplay();
 
         /**
          * @brief Init code for 133x hardware.

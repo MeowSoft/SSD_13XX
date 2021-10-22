@@ -30,9 +30,6 @@ static const uint8_t CMD_PRECHARGESPEEDC 	    = 0x8C;
 // Set remap register command.
 static const uint8_t CMD_SETREMAP 		        = 0xA0;
 
-// Bitmask for rotation bits in remap.
-static const uint8_t VAL_REMAP_ROTATION_BITS    = 0x1b;
-
 // Start and offset commands.
 static const uint8_t CMD_STARTLINE 		        = 0xA1;
 static const uint8_t CMD_DISPLAYOFFSET 	        = 0xA2;

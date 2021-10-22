@@ -10,51 +10,12 @@ SSD_Core::SSD_Core(
 ) {
     _rstPin  = rstPin;
     _spi = spi;
+    _init();
 }
 
 // ===================================================
 /* #region Screen configuration methods:            */
 // ===================================================
-
-void SSD_Core::init(void) {
-
-    // Initialize screen config.
-    _screenConfig.init(this);
-	_screenConfig.setColorDepth(SSD_DISPLAY_DATA_COLOR_DEPTH);
-	_screenConfig.setColorOrder(SSD_DISPLAY_DATA_COLOR_ORDER);
-
-    // Reset screen hardware.
-	resetScreen();
-	delay(30);
-
-    // Start SPI.
-	_spi.startTransaction();
-
-    // Initialize the SSD chip.
-	#if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
-	    _init133x();
-	#elif defined(SSD_1351_REGISTERS_H)
-	    _init1351();
-	#endif
-
-    // Set normal display mode and turn on.
-	_spi.writeCommand8(CMD_NORMALDISPLAY);
-	_spi.writeCommand8AndDeselect(CMD_DISPLAYON);
-
-    // Finish SPI.
-	_spi.endTransaction();
-	delay(60);
-
-    // Set screen rotation.
-	setScreenRotation(SSD_ScreenConfig::ROTATION_LANDSCAPE);
-
-    // Clear screen.
-	fillScreen(0);
-	delay(1);
-
-    // Set mode in screen config.
-	_screenConfig.changeMode(SSD_ScreenConfig::NORMAL);
-}
 
 void SSD_Core::resetScreen(void) {
     if (_rstPin != 255) {
@@ -93,27 +54,8 @@ int16_t SSD_Core::getScreenWidth(void) const {
 	return _screenConfig.getWidth();
 }
 
-void SSD_Core::setScreenColorDepth(uint8_t depth) {
-	_screenConfig.setColorDepth(depth);
-}
-
-void SSD_Core::setScreenColorOrder(SSD_Hardware::ColorOrder_t order) {
-    bool useBGR = (order == SSD_Hardware::ColorOrder_t::COLOR_ORDER_BGR);
-	_screenConfig.setColorOrder(useBGR);
-}
-
-void SSD_Core::setAddressWindow(
-    int16_t x0, 
-    int16_t y0, 
-    int16_t x1, 
-    int16_t y1
-) {
-	_spi.startTransaction();
-	_setAddressWindow(x0, y0, x1, y1, true);
-	_spi.deselectAndEndTransaction();
-}
-
 void SSD_Core::setScreenBrightness(uint8_t brightness) {
+
 	// Clamp to 15.
 	if (brightness > 15) brightness = 15;
 
@@ -143,6 +85,7 @@ void SSD_Core::defineScrollArea(
     // Scroll speed bitfield.
 	uint8_t scrollSpeed = 0;
 
+    // SSD_1331 or SSD_1332:
 	#if defined(SSD_1331_REGISTERS_H) || \
         defined(SSD_1332_REGISTERS_H)
 
@@ -167,6 +110,7 @@ void SSD_Core::defineScrollArea(
 		_spi.writeCommand8AndDeselect(scrollSpeed);
 		_spi.endTransaction();
 
+    // SSD_1351:
 	#elif defined(SSD_1351_REGISTERS_H)
 
         // Set scroll speed field.
@@ -180,7 +124,7 @@ void SSD_Core::defineScrollArea(
 
         // Set scroll area command.
 		_spi.startTransaction();
-		_spi.writeCommand8(CMD_HORIZSCROLL);
+		_spi.writeCommand8(CMD_SCROLL_SETUP);
 		_spi.writeData8(a);
 		_spi.writeData8(b);
 		_spi.writeData8(c);
@@ -302,7 +246,7 @@ void SSD_Core::clearArea(
 		swapVals(x1, y1);
 	}
 
-    // Move area.
+    // Clear area.
 	_spi.startTransaction();
 	_spi.writeCommand8(CMD_CLRWINDOW);
 	_spi.writeCommand8(x0 & 0xFF);
@@ -344,10 +288,25 @@ void SSD_Core::fillScreen(uint16_t color) {
     // SSD_1351:
 	#else
 
-        // Fill screen.
+        // Start SPI.
 		_spi.startTransaction();
-		_setAddressWindow(0, 0, SSD_WIDTH - 1, SSD_HEIGHT - 1, false);
-		_spi.writeData16Multi(color, SSD_WIDTH * SSD_HEIGHT);
+
+        // Set address window to full screen.
+		_setAddressWindow(
+            0, 
+            0, 
+            SSD_DISPLAY_DATA_WIDTH - 1, 
+            SSD_DISPLAY_DATA_HEIGHT - 1, 
+            false
+        );
+
+        // Write color data.
+		_spi.writeData16Multi(
+            color, 
+            SSD_DISPLAY_DATA_WIDTH * SSD_DISPLAY_DATA_HEIGHT
+        );
+
+        // Finish SPI.
 	    _spi.deselectAndEndTransaction();
 
 	#endif
@@ -424,146 +383,82 @@ void SSD_Core::drawGradient(
 /* #region Private methods:                         */
 // ===================================================
 
-void SSD_Core::_init133x() {
+void SSD_Core::_init(void) {
+
+    // Initialize screen config.
+    _screenConfig.init(this);
+	_screenConfig.setColorDepth(SSD_DISPLAY_DATA_COLOR_DEPTH);
+	_screenConfig.setColorOrder(SSD_DISPLAY_DATA_COLOR_ORDER);
+
+    // Reset screen hardware.
+	resetScreen();
+	delay(30);
+
+    // Start SPI.
+	_spi.startTransaction();
+
+    // Unlock if using 1351.
+    #if defined(SSD_1351_REGISTERS_H)
+        _writeRegister(CMD_CMDLOCK, VAL_UNLOCK);
+        _writeRegister(CMD_CMDLOCK, VAL_UNLOCK_COMMANDS);
+    #endif
+
+    // Set display properties.
     _spi.writeCommand8(CMD_DISPLAYOFF);
     _writeRegister(CMD_CLOCKDIV, SSD_DISPLAY_DATA_CLOCK_DIV);
-
-    // Set MUX ratio.
     _writeRegister(CMD_SETMULTIPLEX, SSD_DISPLAY_DATA_MUX_RATIO);
-    
-    // Set display start line and offset.
     _writeRegister(CMD_STARTLINE, SSD_DISPLAY_DATA_START_LINE);
     _writeRegister(CMD_DISPLAYOFFSET, SSD_DISPLAY_DATA_OFFSET);
-
     _writeRegister(CMD_SETCONFIG, SSD_DISPLAY_DATA_MASTER_CONFIG);
-    _writeRegister(CMD_POWERMODE, VAL_POWERMODE_OFF);
     _writeRegister(CMD_MASTERCURRENT, SSD_DISPLAY_DATA_DEFAULT_BRIGHTNESS);
+    _writeRegister(CMD_PHASEPERIOD, SSD_DISPLAY_DATA_PHASE_PERIOD);
+    _writeRegister(CMD_VCOMH, SSD_DISPLAY_DATA_VCOMH);
+
+    // Turn off low power mode for 1331 or 1332.
+    #if defined(SSD_1331_REGISTERS_H) || defined(SSD_1332_REGISTERS_H)
+        _writeRegister(CMD_POWERMODE, VAL_POWERMODE_OFF);
+    #endif
+
+    // 1351 specific setup.
+    #if defined(SSD_1351_REGISTERS_H)
+        _writeRegister(CMD_SETGPIO, SSD_SETGPIO);
+        _spi.writeCommand8(CMD_SETVSL);
+        _spi.writeData8(SSD_DISPLAY_DATA_VSL_A);
+        _spi.writeData8(SSD_DISPLAY_DATA_VSL_B);
+        _spi.writeData8(SSD_DISPLAY_DATA_VSL_C);
+        _setEnhanceDisplay()
+    #endif
+
+    // Remaining setup.
     _setGreyscaleTable();
     _setContrast();
-    _setDimModeContrast();
-    
-_writeRegister(CMD_PHASEPERIOD, SSD_DISPLAY_DATA_PHASE_PERIOD);
     _setPreCharge();
-    _writeRegister(CMD_VCOMH, SSD_DISPLAY_DATA_VCOMH);
-    _setFillState(1);
-}
+    _setDimModeContrast();
 
-void SSD_Core::_init1351() {
-    #if defined(SSD_1351_REGISTERS_H)
-        _writeRegister(CMD_CMDLOCK, SSD_COMMANDLOCK1);
-        _writeRegister(CMD_CMDLOCK, SSD_COMMANDLOCK2);
-        _spi.writeCommand8(CMD_DISPLAYOFF);
-        _writeRegister(CMD_CLOCKDIV, displayData->clockDiv);
-
-
-    // Set MUX ratio.
-        _writeRegister(CMD_SETMULTIPLEX, displayData->muxRatio);
-
-        // Set display start line and offset.
-        _writeRegister(CMD_STARTLINE, displayData->startLine);
-        _writeRegister(CMD_DISPLAYOFFSET, displayData->displayOffset);
-
-        _writeRegister(CMD_SETGPIO, SSD_SETGPIO);
-        _writeRegister(CMD_SETCONFIG, displayData->masterConfig);
-
-        _spi.writeCommand8(CMD_SETVSL);
-        _spi.writeData8(displayData->vslA);
-        _spi.writeData8(displayData->vslB);
-        _spi.writeData8(displayData->vslC);
-
-        _setContrast();
-
-        _writeRegister(CMD_MASTERCURRENT, SSD_MASTERCURRENT);
-
-            _setEnhanceDisplay(SSD_ENHANCE)
-    
-
-        _setGreyscaleTable();
-        _setPreCharge();
-        _writeRegister(CMD_PHASEPERIOD, displayData->phasePeriod);
-        _writeRegister(CMD_VCOMH, displayData->vcomH);
+    // Initialize fill state for 1331 or 1332.
+	#if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
+        _setFillState(1);
     #endif
+
+    // Set normal display mode and turn on.
+	_spi.writeCommand8(CMD_NORMALDISPLAY);
+	_spi.writeCommand8AndDeselect(CMD_DISPLAYON);
+
+    // Finish SPI.
+	_spi.endTransaction();
+	delay(60);
+
+    // Set screen rotation.
+	setScreenRotation(SSD_ScreenConfig::ROTATION_LANDSCAPE);
+
+    // Clear screen.
+	fillScreen(0);
+	delay(1);
+
+    // Set mode in screen config.
+	_screenConfig.changeMode(SSD_ScreenConfig::NORMAL);
 }
-
-/**
- *                              1331:   1332:   1351:   Method:
- * 
- * CMD_SETCOLUMN                0x15    0x15    0x15    SSD_13XX::_setAddressWindow
- * CMD_SETROW                   0x75    0x75    0x75    SSD_13XX::_setAddressWindow
- * 
- * CMD_WRITERAM                 ----    ----    0x5C
- * CMD_READRAM                  ----    ----    0x5D
- *      
- * CMD_CONTRASTA                0x81    0x81    ----    SSD_13XX::_setContrast                  
- * CMD_CONTRASTB                0x82    0x82    ----    SSD_13XX::_setContrast
- * CMD_CONTRASTC                0x83    0x83    ----    SSD_13XX::_setContrast
- * CMD_CONTRASTABC              ----    ----    0xC1    SSD_13XX::_setContrast
- *      
- * CMD_MASTERCURRENT            0x87    0x87    0xC7    SSD_13XX::setScreenBrightness
- * 
- * CMD_PRECHARGESPEEDA          0x8A    ----    ----    SSD_13XX::_setPreCharge
- * CMD_PRECHARGESPEEDB          0x8B    ----    ----    SSD_13XX::_setPreCharge
- * CMD_PRECHARGESPEEDC          0x8C    ----    ----    SSD_13XX::_setPreCharge
- * 
- * CMD_SETREMAP                 0xA0    0xA0    0xA0    SSD_ScreenConfig::writeRemap
- * 
- * CMD_STARTLINE                0xA1    0xA1    0xA1    init
- * CMD_DISPLAYOFFSET            0xA2    0xA2    0xA2    init
- * 
- * CMD_NORMALDISPLAY            0xA4    0xA4    0xA6    SSD_ScreenConfig::changeMode
- * CMD_DISPLAYALLON             0xA5    0xA5    0xA5    SSD_ScreenConfig::changeMode
- * CMD_DISPLAYALLOFF            0xA6    0xA6    0xA4    SSD_ScreenConfig::changeMode
- * CMD_INVERTDISPLAY            0xA7    0xA7    0xA7    SSD_ScreenConfig::changeMode
- * 
- * CMD_SETMULTIPLEX             0xA8    0xA8    0xCA    init
- *      
- * CMD_SETDIMLEVELS             0xAB    ----    ----    SSD_13XX::_setDimModeContrast
- *      
- * CMD_SETCONFIG                0xAD    0xAD    0xAB    init
- * 
- * CMD_DISPLAYDIM               0xAC    ----    ----    SSD_ScreenConfig::changeMode
- * CMD_DISPLAYOFF               0xAE    0xAE    0xAF    SSD_ScreenConfig::changeMode
- * CMD_DISPLAYON                0xAF    0xAF    0xAE    SSD_ScreenConfig::changeMode
- *      
- * CMD_POWERMODE                0xB0    0xB0    ----    SSD_ScreenConfig::changeMode
- *
- * CMD_DISPLAYENHANCE           ----    ----    0xB2    SSD_13XX::_setEnhanceDisplay
- *
- * CMD_PHASEPERIOD              0xB1    0xB1    0xB1    init
- *      
- * CMD_SETCLOCKDIV              0xB3    0xB3    0xB3    init
- * 
- * CMD_SETVSL                   ----    ----    0xB4    init
- * 
- * CMD_SETGPIO                  ----    ----    0xB5    init
- * 
- * CMD_PRECHARGEPERIOD          ----    ----    0xB6    SSD_13XX::_setPreCharge
- *
- * CMD_SETGRAYSCALE             0xB8    0xB8    0xB8    SSD_13XX::_setGreyscaleTable
- * CMD_LINEARGRAY               0xB9    0xB9    0xB9    SSD_13XX::_setGreyscaleTable
- * 
- * CMD_PRECHARGELEVEL           0xBB    ----    0xBB    SSD_13XX::_setPreCharge
- * CMD_PRECHARGELEVELA          ----    0xBB    ----    SSD_13XX::_setPreCharge
- * CMD_PRECHARGELEVELB          ----    0xBC    ----    SSD_13XX::_setPreCharge
- * CMD_PRECHARGELEVELC          ----    0xBD    ----    SSD_13XX::_setPreCharge
- * 
- * CMD_SETVCOMH                 0xBE    0xBE    0xBE    init
- * 
- * CMD_NOP                      0xE3    0xE3    0xE3
- * CMD_LOCK                     0xFD    ----    0xFD
- * 
- * CMD_DRAWLINE                 0x21    0x21    ----
- * CMD_DRAWRECT                 0x22    0x22    ----
- * CMD_COPYWINDOW               0x23    0x23    ----
- * CMD_DIMWINDOW                0x24    0x24    ----
- * CMD_CLRWINDOW                0x25    0x25    ----
- * CMD_FILLMODE                 0x26    0x26    ----
- * 
- * CMD_SCROLL_SETUP             0x27    ----    0x96
- * CMD_SCROLL_OFF               0x2E    ----    0x9E
- * CMD_SCROLL_ON                0x2F    ----    0x9F
- */
-
 
 void SSD_Core::_setContrast() {
 
@@ -577,9 +472,9 @@ void SSD_Core::_setContrast() {
     // SSD_1351:
     #elif defined(SSD_1351_REGISTERS_H)
         _spi.writeCommand8(CMD_CONTRASTABC);
-        _spi.writeData8(displayData->contrastA);
-        _spi.writeData8(displayData->contrastB);
-        _spi.writeData8(displayData->contrastC);
+        _spi.writeData8(SSD_DISPLAY_DATA_CONTRAST_A);
+        _spi.writeData8(SSD_DISPLAY_DATA_CONTRAST_B);
+        _spi.writeData8(SSD_DISPLAY_DATA_CONTRAST_C);
     #endif
 }
 
@@ -590,16 +485,14 @@ void SSD_Core::_setPreCharge() {
         _writeRegister(CMD_PRECHARGESPEEDC, SSD_DISPLAY_DATA_PRECHARGE_SPEED_C);
         _writeRegister(CMD_PRECHARGELEVEL, SSD_DISPLAY_DATA_PRECHARGE_LEVEL);
     #elif defined(SSD_1332_REGISTERS_H)
-		_writeRegister(CMD_PRECHARGELEVELA, displayData->preChargeLevelA);
-		_writeRegister(CMD_PRECHARGELEVELB, displayData->preChargeLevelB);
-		_writeRegister(CMD_PRECHARGELEVELC, displayData->preChargeLevelC);
+		_writeRegister(CMD_PRECHARGELEVELA, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_A);
+		_writeRegister(CMD_PRECHARGELEVELB, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_B);
+		_writeRegister(CMD_PRECHARGELEVELC, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_C);
     #elif defined(SSD_1351_REGISTERS_H)
-		_writeRegister(CMD_PRECHARGEPERIOD, displayData->preChargePeriod);
-        _writeRegister(CMD_PRECHARGELEVEL, displayData->preChargeLevel);
+		_writeRegister(CMD_PRECHARGEPERIOD, SSD_DISPLAY_DATA_PRECHARGE_PERIOD);
+        _writeRegister(CMD_PRECHARGELEVEL, SSD_DISPLAY_DATA_PRECHARGE_LEVEL);
     #endif
 }
-
-
 
 void SSD_Core::_setDimModeContrast() {
      #if defined(SSD_1331_REGISTERS_H)
@@ -612,22 +505,18 @@ void SSD_Core::_setDimModeContrast() {
     #endif
 }
 
-
-
-void SSD_Core::_setEnhanceDisplay(bool enhance) {
+void SSD_Core::_setEnhanceDisplay() {
     #if defined(SSD_1351_REGISTERS_H)
-    uint8_t* data = enhance 
-        ? VAL_DISPLAYENHANCE_ON 
-        : VAL_DISPLAYENHANCE_OFF;
+        uint8_t* data = SSD_DISPLAY_DATA_USE_ENHANCED_DISPLAY 
+            ? VAL_DISPLAYENHANCE_ON 
+            : VAL_DISPLAYENHANCE_OFF;
 
-    _spi.writeCommand8(CMD_DISPLAYENHANCE);
-    _spi.writeData8(data[0]);
-    _spi.writeData8(data[1]);
-    _spi.writeData8(data[2]);
+        _spi.writeCommand8(CMD_DISPLAYENHANCE);
+        _spi.writeData8(data[0]);
+        _spi.writeData8(data[1]);
+        _spi.writeData8(data[2]);
     #endif
 }
-
-
 
 void SSD_Core::_setGreyscaleTable() {
 
@@ -643,10 +532,11 @@ void SSD_Core::_setGreyscaleTable() {
     _spi.writeCommand8(CMD_GRAYSCALE); 
 
     for (uint8_t i = 0; i < 32; i++){
+        uint8_t data = SSD_DISPLAY_DATA_GRAY_TABLE[i];
         #if defined(SSD_CMD_DATA_BIT)
-            _spi.writeData8(displayData->grayTable[i]);
+            _spi.writeData8(data);
         #else
-            _spi.writeCommand8(SSD_DISPLAY_DATA_GRAY_TABLE[i]);
+            _spi.writeCommand8(data);
         #endif
     }
 }
@@ -816,12 +706,9 @@ void SSD_Core::_setFillState(bool filling) {
     static bool _filled;
     if (filling != _filled){
         _filled = filling;
+        uint8_t data = filling ? 0x01 : 0x00;
         _spi.writeCommand8(CMD_FILLMODE);
-        if (filling){
-            _spi.writeCommand8(0x01);
-        } else {
-            _spi.writeCommand8(0x00);
-        }
+        _spi.writeCommand8(data);
     }
 }
 

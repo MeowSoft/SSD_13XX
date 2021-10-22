@@ -1,0 +1,81 @@
+Command values for SSD_1331, SSD_1332, and 
+SSD_1351 and the methods they are used in.
+
+/**
+ *                              1331:   1332:   1351:   Method:
+ * 
+ * CMD_SETCOLUMN                0x15    0x15    0x15    SSD_Core::_setAddressWindow
+ * CMD_SETROW                   0x75    0x75    0x75    SSD_Core::_setAddressWindow
+ * 
+ * CMD_WRITERAM                 ----    ----    0x5C
+ * CMD_READRAM                  ----    ----    0x5D
+ *      
+ * CMD_CONTRASTA                0x81    0x81    ----    SSD_Core::_setContrast                  
+ * CMD_CONTRASTB                0x82    0x82    ----    SSD_Core::_setContrast
+ * CMD_CONTRASTC                0x83    0x83    ----    SSD_Core::_setContrast
+ * CMD_CONTRASTABC              ----    ----    0xC1    SSD_Core::_setContrast
+ *      
+ * CMD_MASTERCURRENT            0x87    0x87    0xC7    SSD_Core::setScreenBrightness
+ * 
+ * CMD_PRECHARGESPEEDA          0x8A    ----    ----    SSD_Core::_setPreCharge
+ * CMD_PRECHARGESPEEDB          0x8B    ----    ----    SSD_Core::_setPreCharge
+ * CMD_PRECHARGESPEEDC          0x8C    ----    ----    SSD_Core::_setPreCharge
+ * 
+ * CMD_SETREMAP                 0xA0    0xA0    0xA0    SSD_ScreenConfig::writeRemap
+ * 
+ * CMD_STARTLINE                0xA1    0xA1    0xA1    SSD_Core::init
+ * CMD_DISPLAYOFFSET            0xA2    0xA2    0xA2    SSD_Core::init
+ * 
+ * CMD_NORMALDISPLAY            0xA4    0xA4    0xA6    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYALLON             0xA5    0xA5    0xA5    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYALLOFF            0xA6    0xA6    0xA4    SSD_ScreenConfig::changeMode
+ * CMD_INVERTDISPLAY            0xA7    0xA7    0xA7    SSD_ScreenConfig::changeMode
+ * 
+ * CMD_SETMULTIPLEX             0xA8    0xA8    0xCA    SSD_Core::init
+ *      
+ * CMD_SETDIMLEVELS             0xAB    ----    ----    SSD_Core::_setDimModeContrast
+ *      
+ * CMD_SETCONFIG                0xAD    0xAD    0xAB    SSD_Core::init
+ * 
+ * CMD_DISPLAYDIM               0xAC    ----    ----    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYOFF               0xAE    0xAE    0xAF    SSD_ScreenConfig::changeMode
+ * CMD_DISPLAYON                0xAF    0xAF    0xAE    SSD_ScreenConfig::changeMode
+ *      
+ * CMD_POWERMODE                0xB0    0xB0    ----    SSD_ScreenConfig::changeMode
+ *
+ * CMD_DISPLAYENHANCE           ----    ----    0xB2    SSD_Core::_setEnhanceDisplay
+ *
+ * CMD_PHASEPERIOD              0xB1    0xB1    0xB1    SSD_Core::init
+ *      
+ * CMD_SETCLOCKDIV              0xB3    0xB3    0xB3    SSD_Core::init
+ * 
+ * CMD_SETVSL                   ----    ----    0xB4    SSD_Core::init
+ * 
+ * CMD_SETGPIO                  ----    ----    0xB5    SSD_Core::init
+ * 
+ * CMD_PRECHARGEPERIOD          ----    ----    0xB6    SSD_Core::_setPreCharge
+ *
+ * CMD_SETGRAYSCALE             0xB8    0xB8    0xB8    SSD_Core::_setGreyscaleTable
+ * CMD_LINEARGRAY               0xB9    0xB9    0xB9    SSD_Core::_setGreyscaleTable
+ * 
+ * CMD_PRECHARGELEVEL           0xBB    ----    0xBB    SSD_Core::_setPreCharge
+ * CMD_PRECHARGELEVELA          ----    0xBB    ----    SSD_Core::_setPreCharge
+ * CMD_PRECHARGELEVELB          ----    0xBC    ----    SSD_Core::_setPreCharge
+ * CMD_PRECHARGELEVELC          ----    0xBD    ----    SSD_Core::_setPreCharge
+ * 
+ * CMD_SETVCOMH                 0xBE    0xBE    0xBE    SSD_Core::init
+ * 
+ * CMD_NOP                      0xE3    0xE3    0xE3
+ * CMD_LOCK                     0xFD    ----    0xFD
+ * 
+ * CMD_DRAWLINE                 0x21    0x21    ----
+ * CMD_DRAWRECT                 0x22    0x22    ----
+ * CMD_COPYWINDOW               0x23    0x23    ----
+ * CMD_DIMWINDOW                0x24    0x24    ----
+ * CMD_CLRWINDOW                0x25    0x25    ----
+ * CMD_FILLMODE                 0x26    0x26    ----
+ * 
+ * CMD_SCROLL_SETUP             0x27    ----    0x96
+ * CMD_SCROLL_OFF               0x2E    ----    0x9E
+ * CMD_SCROLL_ON                0x2F    ----    0x9F
+ */

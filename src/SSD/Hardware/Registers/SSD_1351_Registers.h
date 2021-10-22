@@ -103,6 +103,8 @@ static const uint8_t CMD_NOP     		        = 0xE3;
 static const uint8_t CMD_LOCK	 	            = 0xFD;
 static const uint8_t VAL_UNLOCK                 = 0x12;
 static const uint8_t VAL_LOCK                   = 0x16;
+static const uint8_t VAL_LOCK_COMMANDS          = 0xB0;
+static const uint8_t VAL_UNLOCK_COMMANDS        = 0xB1;
 
 
 

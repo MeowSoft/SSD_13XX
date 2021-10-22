@@ -36,5 +36,6 @@
 #define SSD_DISPLAY_DATA_VSL_A SSD_Hardware::displayData.getVSLA()
 #define SSD_DISPLAY_DATA_VSL_B SSD_Hardware::displayData.getVSLB()
 #define SSD_DISPLAY_DATA_VSL_C SSD_Hardware::displayData.getVSLC()
+#define SSD_DISPLAY_DATA_USE_ENHANCED_DISPLAY SSD_Hardware::displayData.useEnhancedDisplay()
 
 #endif

@@ -13,7 +13,7 @@ bool Text_Engine::isPortrait() {
     return ssd_->_screenConfig.isPortrait();
 }
 void Text_Engine::setAddressWindow(int16_t x0, int16_t y0, int16_t x1, int16_t y1) {
-    ssd_->setAddressWindow(x0, y0, x1, y1);
+    ssd_->_setAddressWindow(x0, y0, x1, y1);
 }
 void Text_Engine::drawRect_cont(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color1,uint16_t color2, bool filled) {
     ssd_->_drawRectangle(x, y, w, h, color1, color2, filled);

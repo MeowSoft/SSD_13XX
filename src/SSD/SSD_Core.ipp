@@ -1,5 +1,4 @@
 #include "SSD_Core.h"
-
 #include "SSD_Util.h"
 
 #define PREFIX inline
@@ -25,7 +24,7 @@ PREFIX bool SSD_Core::_checkBounds(
 ) {
     uint16_t w = _screenConfig.getWidth();
     uint16_t h = _screenConfig.getHeight();
-    return ( x < w && y < h);
+    return (x >= 0 && y >= 0 && x < w && y < h);
 }
 
 PREFIX void SSD_Core:: _coerceBounds(
@@ -54,20 +53,20 @@ PREFIX void SSD_Core::_setAddressWindow(
 
     #if defined(SSD_1331_REGISTERS_H) || \
         defined(SSD_1332_REGISTERS_H)
-    _spi.writeCommand8(CMD_SETCOLUMN);
-    _spi.writeCommand8(rowStart); 
-    _spi.writeCommand8(rowEnd);
-    _spi.writeCommand8(CMD_SETROW);
-    _spi.writeCommand8(columnStart);
-    _spi.writeCommand8(columnEnd);
+        _spi.writeCommand8(CMD_SETCOLUMN);
+        _spi.writeCommand8(rowStart); 
+        _spi.writeCommand8(rowEnd);
+        _spi.writeCommand8(CMD_SETROW);
+        _spi.writeCommand8(columnStart);
+        _spi.writeCommand8(columnEnd);
     #else
-    _spi.writeCommand8(CMD_SETCOLUMN);
-    _spi.writeData8(rowStart); 
-    _spi.writeData8(rowEnd);
-    _spi.writeCommand8(CMD_SETROW);
-    _spi.writeData8(columnStart); 
-    _spi.writeData8(columnEnd);
-    _spi.writeCommand8(CMD_WRITERAM);
+        _spi.writeCommand8(CMD_SETCOLUMN);
+        _spi.writeData8(rowStart); 
+        _spi.writeData8(rowEnd);
+        _spi.writeCommand8(CMD_SETROW);
+        _spi.writeData8(columnStart); 
+        _spi.writeData8(columnEnd);
+        _spi.writeCommand8(CMD_WRITERAM);
     #endif
 }
 
@@ -89,10 +88,6 @@ PREFIX void SSD_Core::_drawRectangle(
     uint16_t color2, 
     bool filled
 ) {
-
-    // SSD_1331 or SSD_1332:
-	#if defined(SSD_1331_REGISTERS_H) || \
-        defined(SSD_1332_REGISTERS_H)
 
     // For a 1 pixel size rectangle...
     if (w < 2 && h < 2) {
@@ -117,6 +112,10 @@ PREFIX void SSD_Core::_drawRectangle(
         _drawVerticalLine(x, y, h, color1); 
         return; 
     }
+
+    // SSD_1331 or SSD_1332:
+	#if defined(SSD_1331_REGISTERS_H) || \
+        defined(SSD_1332_REGISTERS_H)
 
     // Otherwise, swap x and y for portrait mode.
     if (_screenConfig.isPortrait()){
@@ -151,7 +150,7 @@ PREFIX void SSD_Core::_drawRectangle(
         ? (SSD_DISPLAY_DATA_HEIGHT - 1) 
         : ((y + h) - 1);
 
-	// Set fill command.
+	// Set fill state.
     _setFillState(filled);
 
     // Send commands to draw the rectangle.

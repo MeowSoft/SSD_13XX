@@ -8,6 +8,8 @@
 // ====================================
 #if defined(__SAM3X8E__) 
 
+    const uint8_t sckPin = 13;
+    const uint8_t sdoPin = 11;
     const uint8_t csPin = 10;
     const uint8_t dcPin  = 8;
     const uint8_t rstPin = 9;
@@ -16,15 +18,20 @@
         csPin, \
         dcPin
 
-    #define SPI_INIT_ARGS \
+    #define SSD_INIT_ARGS \
         csPin, \
-        dcPin
-
+        dcPin, \
+        rstPin, \
+        sdoPin, \
+        sckPin
+        
 // ====================================
 // AVR (Duemilanove):
 // ====================================
 #elif defined(__AVR__)
 
+    const uint8_t sckPin = 13;
+    const uint8_t sdoPin = 11;
     const uint8_t csPin = 10;
     const uint8_t dcPin = 8;
     const uint8_t rstPin = 9;
@@ -33,15 +40,20 @@
         csPin, \
         dcPin
 
-    #define SPI_INIT_ARGS \
+    #define SSD_INIT_ARGS \
         csPin, \
-        dcPin
-
+        dcPin, \
+        rstPin, \
+        sdoPin, \
+        sckPin
+        
 // ====================================
 // ESP8266:
 // ====================================
 #elif defined(ESP8266)
 
+    const uint8_t sckPin = 13;
+    const uint8_t sdoPin = 11;
     const uint8_t csPin = 15;
     const uint8_t dcPin = 0;
     const uint8_t rstPin = 2;
@@ -50,10 +62,13 @@
         csPin, \
         dcPin
 
-    #define SPI_INIT_ARGS \
+    #define SSD_INIT_ARGS \
         csPin, \
-        dcPin
-
+        dcPin, \
+        rstPin, \
+        sdoPin, \
+        sckPin
+        
 // ====================================
 // Teensy 3.x:
 // ====================================
@@ -71,13 +86,13 @@
         csPin, \
         dcPin
 
-    #define SPI_INIT_ARGS \
-        sdoPin, \
-        sckPin, \
+    #define SSD_INIT_ARGS \
         csPin, \
         dcPin, \
-        CMD_NOP
-
+        rstPin, \
+        sdoPin, \
+        sckPin
+        
 // ====================================
 // Teensy LC:
 // ====================================
@@ -95,12 +110,13 @@
         csPin, \
         dcPin
 
-    #define SPI_INIT_ARGS \
-        sdoPin, \
-        sckPin, \
+    #define SSD_INIT_ARGS \
         csPin, \
-        dcPin
-
+        dcPin, \
+        rstPin, \
+        sdoPin, \
+        sckPin
+        
 #endif
 
 #endif
