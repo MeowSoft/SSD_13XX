@@ -6,6 +6,9 @@
 // Forward ref for SSD pointer.
 class SSD_Core;
 
+/**
+ * @brief This class handles screen mode and rotation.
+ */
 class SSD_ScreenConfig {
 
     public:
@@ -40,7 +43,8 @@ class SSD_ScreenConfig {
             // Display off. (Sleep mode)
             DISP_OFF,
 
-            // Turn all pixels on. (Color will be last value in greyscale table)
+            // Turn all pixels on. (Color will be last value in greyscale 
+            // table)
             ALL_ON,
 
             // Turn all pixels off.
@@ -108,7 +112,8 @@ class SSD_ScreenConfig {
 
     private:
 
-        // Screen width and height. These values will swap based on screen rotation.
+        // Screen width and height. These values will swap based on screen 
+        // rotation.
         volatile int16_t _width;
         volatile int16_t _height;
 

@@ -1,5 +1,6 @@
 #include "Tests.h"
 #include "TestHardware.h"
+#include <Arduino.h>
 
 #ifdef USE_MINE
 
@@ -15,7 +16,9 @@
 #define _DrawLine testHardware.ssdCore->drawLine
 #define _DrawHLine(x, y, w, c) testHardware.ssdCore->drawLine(x, y, x + w, y, c)
 #define _DrawVLine(x, y, h, c) testHardware.ssdCore->drawLine(x, y, x, y + h, c)
+#define _DrawRectangle(x, y, w, h, c) testHardware.ssdCore->drawRectangle(x, y, w, h, c, 0, false)
 #define _DrawFilledRectangle(x, y, w, h, c1, c2) testHardware.ssdCore->drawRectangle(x, y, w, h, c1, c2, true)
+#define _DrawGradient(x, y, w, h, c1, c2) testHardware.ssdCore->drawGradient(x, y, w, h, c1, c2)
 // #define _DrawRectangle(x, y, w, h, c1) testHardware.ssdCore->drawRectangle(x, y, w, h, c1, c1, false)
 // #define _SetRotation testHardware.ssdCore->setScreenRotation
 // #define _ChangeMode testHardware.ssdCore->setScreenMode
@@ -47,7 +50,9 @@
 #define _DrawLine testHardware.ssd13XX->drawLine
 #define _DrawHLine testHardware.ssd13XX->drawFastHLine
 #define _DrawVLine testHardware.ssd13XX->drawFastVLine
+#define _DrawRectangle(x, y, w, h, c) testHardware.ssd13XX->drawRect(x, y, w, h, c, 0, false)
 #define _DrawFilledRectangle(x, y, w, h, c1, c2) testHardware.ssd13XX->drawRect(x, y, w, h, c1, c2, true)
+#define _DrawGradient(x, y, w, h, c1, c2) testHardware.ssdCore->fillRect(x, y, w, h, c1, c2)
 // #define _DrawRectangle testHardware.ssd13XX->drawRect
 // #define _SetRotation testHardware.ssd13XX->setRotation
 // #define _ChangeMode testHardware.ssd13XX->changeMode
@@ -89,7 +94,6 @@ uint32_t Tests::testFillScreen(uint16_t color) {
     uint32_t start;
     uint32_t result;
     
-    _FillScreen(0x0000);
     start = micros();
     _FillScreen(color);
     result = micros() - start;
@@ -114,9 +118,6 @@ uint32_t Tests::testDiagonalLines(uint16_t color, uint8_t corner) {
 
     // Loop index.
     int i;
-
-    // Clear the screen.
-    clearScreen();
 
     // Figure out which corner we want to start from.
     uint8_t _corner = corner % 4;
@@ -188,9 +189,6 @@ uint32_t Tests::testStraightLines(uint16_t color, bool horizontal) {
     // Loop index.
     int i;
 
-    // Clear the screen.
-    clearScreen();
-
     // Run the test.
     start = micros();
     if (horizontal) {
@@ -199,6 +197,32 @@ uint32_t Tests::testStraightLines(uint16_t color, bool horizontal) {
         for (i = 0; i < w; i += 5) _DrawVLine(i, 0, h, color);
     }
     result = micros() - start;
+
+    // Return the result.
+    return result;
+}
+
+uint32_t Tests::testRectangles(uint16_t color) {
+
+    // Time vars.
+    uint32_t start;
+    uint32_t result = 0;
+
+    int n;
+    int i;
+    int i2;
+    int cx = (_GetWidth() / 2);
+    int cy = (_GetHeight() / 2);
+
+    n = (min(_GetWidth(), _GetHeight()));
+
+    // Run the test.
+    for (i = n; i > 0; i -= 10) {
+        i2 = i / 2;
+        start = micros();
+        _DrawRectangle(cx - i2, cy - i2, i, i, color);
+        result += micros() - start;
+    }
 
     // Return the result.
     return result;
@@ -213,11 +237,8 @@ uint32_t Tests::testFilledRectangles(uint16_t color1, uint16_t color2) {
     int n;
     int i;
     int i2;
-    int cx = (_GetWidth() / 2) - 1;
-    int cy = (_GetHeight() / 2) - 1;
-
-    // Clear the screen.
-    clearScreen();
+    int cx = (_GetWidth() / 2);
+    int cy = (_GetHeight() / 2);
 
     n = min(_GetWidth(), _GetHeight());
 
@@ -226,6 +247,32 @@ uint32_t Tests::testFilledRectangles(uint16_t color1, uint16_t color2) {
         i2 = i / 2;
         start = micros();
         _DrawFilledRectangle(cx - i2, cy - i2, i, i, color1, color2);
+        result += micros() - start;
+    }
+
+    // Return the result.
+    return result;
+}
+
+uint32_t Tests::testGradients(uint16_t color1, uint16_t color2) {
+
+    // Time vars.
+    uint32_t start;
+    uint32_t result = 0;
+
+    int n;
+    int i;
+    int i2;
+    int cx = (_GetWidth() / 2);
+    int cy = (_GetHeight() / 2);
+
+    n = min(_GetWidth(), _GetHeight());
+
+    // Run the test.
+    for (i = n; i > 0; i -= 10) {
+        i2 = i / 2;
+        start = micros();
+        _DrawGradient(cx - i2, cy - i2, i, i, color1, color2);
         result += micros() - start;
     }
 

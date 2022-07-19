@@ -125,14 +125,15 @@ class SSD_Core {
         /**
          * @brief Set up an area of the screen to scroll.
          * 
-         * @param a Number of columns to horizontal scroll by per scroll step. (1331) OR 
-         *          direction of horizontal scroll (1351)
-         *              0x3F or less = scroll towards SEG127, 
-         *              greater than 0x3F = scroll towards SEG0 
+         * @param a Number of columns to horizontal scroll by per scroll step. 
+         * (1331) OR direction of horizontal scroll (1351)
+         *      0x3F or less = scroll towards SEG127, 
+         *      greater than 0x3F = scroll towards SEG0 
          * 
          * @param b Address of first row in scroll area.
          * @param c Number of rows in scroll area.
-         * @param d Number of rows to vertical scroll by per scroll step. (1331 only)
+         * @param d Number of rows to vertical scroll by per scroll step. 
+         * (1331 only)
          * @param e Number of frames per scroll step.
          */
         void defineScrollArea(
@@ -431,34 +432,30 @@ class SSD_Core {
          */
 	    void _init(void);
 
-        void _setPreCharge();
-        void _setDimModeContrast();
-        void _setEnhanceDisplay();
-
-        /**
-         * @brief Init code for 133x hardware.
-         */
-        void _init133x();
-
-        /**
-         * @brief Init code for 1351 hardware.
-         */
-        void _init1351();
-
         /**
          * @brief Issue command to set Screen contrast.
          */
-        void _setContrast();
+        void _setContrast(void);
 
         /**
-         * @brief Issue command to set screen color levels.
+         * @brief Set color precharge voltage values.
          */
-        void _setColorLevels();
+        void _setPreCharge(void);
+
+        /**
+         * @brief Set contrast levels for dim mode.
+         */
+        void _setDimModeContrast(void);
+
+        /**
+         * @brief Set enhanced display mode. (1351 only)
+         */
+        void _setEnhanceDisplay(void);
 
         /**
          * @brief Issue command to load screen greyscale table.
          */
-        void _setGreyscaleTable();
+        void _setGreyscaleTable(void);
 
         /**
          * @brief Write data to a register. This method
@@ -541,7 +538,11 @@ class SSD_Core {
          * @param g 
          * @param b 
          */
-        void _writeColorData(uint8_t r,uint8_t g,uint8_t b);
+        void _writeColorData(
+            uint8_t r,
+            uint8_t g,
+            uint8_t b
+        );
 
         #endif
 

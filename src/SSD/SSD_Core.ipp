@@ -243,7 +243,7 @@ PREFIX void SSD_Core::_drawGradient(
         _spi.writeData16Multi(SSD_Util::Color565(rR, gG, bB), w);
         
     // Increment row count.
-    } while (rowCount++ < h);
+    } while (++rowCount < h);
 }
 
 #undef PREFIX

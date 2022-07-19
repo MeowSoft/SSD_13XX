@@ -3,15 +3,24 @@
 
 #define PREFIX inline
 
-PREFIX uint16_t SSD_Util::Color565(uint8_t r, uint8_t g, uint8_t b) {
-    return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
-    }
+PREFIX uint16_t SSD_Util::Color565(
+	uint8_t r, 
+	uint8_t g, 
+	uint8_t b
+) {
+    return ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+}
 
-	PREFIX uint16_t SSD_Util::Color24To565(int32_t color_) { 
-        return ((((color_ >> 16) & 0xFF) / 8) << 11) | ((((color_ >> 8) & 0xFF) / 4) << 5) | (((color_) &  0xFF) / 8);
-        }
+PREFIX uint16_t SSD_Util::Color24To565(int32_t color) { 
 
-	PREFIX uint16_t SSD_Util::htmlTo565(int32_t color_) { 
+    return (
+		(((color >> 19) & 0x1f) << 11) | // R
+		(((color >> 10) & 0x3f) << 5) |  // G
+		((color >> 3) &  0x1f)			 // B
+	);
+}
+
+PREFIX uint16_t SSD_Util::htmlTo565(int32_t color_) { 
         return (uint16_t)(((color_ & 0xF80000) >> 8) | ((color_ & 0x00FC00) >> 5) | ((color_ & 0x0000F8) >> 3));
         }
 

@@ -460,7 +460,7 @@ void SSD_Core::_init(void) {
 	_screenConfig.changeMode(SSD_ScreenConfig::NORMAL);
 }
 
-void SSD_Core::_setContrast() {
+void SSD_Core::_setContrast(void) {
 
     // SSD_1331 or SSD_1332:
     #if defined(SSD_1331_REGISTERS_H) || \
@@ -478,23 +478,50 @@ void SSD_Core::_setContrast() {
     #endif
 }
 
-void SSD_Core::_setPreCharge() {
+void SSD_Core::_setPreCharge(void) {
     #if defined(SSD_1331_REGISTERS_H)
-        _writeRegister(CMD_PRECHARGESPEEDA, SSD_DISPLAY_DATA_PRECHARGE_SPEED_A);
-        _writeRegister(CMD_PRECHARGESPEEDB, SSD_DISPLAY_DATA_PRECHARGE_SPEED_B);
-        _writeRegister(CMD_PRECHARGESPEEDC, SSD_DISPLAY_DATA_PRECHARGE_SPEED_C);
-        _writeRegister(CMD_PRECHARGELEVEL, SSD_DISPLAY_DATA_PRECHARGE_LEVEL);
+        _writeRegister(
+            CMD_PRECHARGESPEEDA, 
+            SSD_DISPLAY_DATA_PRECHARGE_SPEED_A
+        );
+        _writeRegister(
+            CMD_PRECHARGESPEEDB, 
+            SSD_DISPLAY_DATA_PRECHARGE_SPEED_B
+        );
+        _writeRegister(
+            CMD_PRECHARGESPEEDC, 
+            SSD_DISPLAY_DATA_PRECHARGE_SPEED_C
+        );
+        _writeRegister(
+            CMD_PRECHARGELEVEL, 
+            SSD_DISPLAY_DATA_PRECHARGE_LEVEL
+        );
     #elif defined(SSD_1332_REGISTERS_H)
-		_writeRegister(CMD_PRECHARGELEVELA, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_A);
-		_writeRegister(CMD_PRECHARGELEVELB, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_B);
-		_writeRegister(CMD_PRECHARGELEVELC, SSD_DISPLAY_DATA_PRECHARGE_LEVEL_C);
+		_writeRegister(
+            CMD_PRECHARGELEVELA, 
+            SSD_DISPLAY_DATA_PRECHARGE_LEVEL_A
+        );
+		_writeRegister(
+            CMD_PRECHARGELEVELB, 
+            SSD_DISPLAY_DATA_PRECHARGE_LEVEL_B
+        );
+		_writeRegister(
+            CMD_PRECHARGELEVELC, 
+            SSD_DISPLAY_DATA_PRECHARGE_LEVEL_C
+        );
     #elif defined(SSD_1351_REGISTERS_H)
-		_writeRegister(CMD_PRECHARGEPERIOD, SSD_DISPLAY_DATA_PRECHARGE_PERIOD);
-        _writeRegister(CMD_PRECHARGELEVEL, SSD_DISPLAY_DATA_PRECHARGE_LEVEL);
+		_writeRegister(
+            CMD_PRECHARGEPERIOD, 
+            SSD_DISPLAY_DATA_PRECHARGE_PERIOD
+        );
+        _writeRegister(
+            CMD_PRECHARGELEVEL, 
+            SSD_DISPLAY_DATA_PRECHARGE_LEVEL
+        );
     #endif
 }
 
-void SSD_Core::_setDimModeContrast() {
+void SSD_Core::_setDimModeContrast(void) {
      #if defined(SSD_1331_REGISTERS_H)
         _spi.writeCommand8(CMD_SETDIMLEVELS);
         _spi.writeCommand8(0);
@@ -505,7 +532,7 @@ void SSD_Core::_setDimModeContrast() {
     #endif
 }
 
-void SSD_Core::_setEnhanceDisplay() {
+void SSD_Core::_setEnhanceDisplay(void) {
     #if defined(SSD_1351_REGISTERS_H)
         uint8_t* data = SSD_DISPLAY_DATA_USE_ENHANCED_DISPLAY 
             ? VAL_DISPLAYENHANCE_ON 
@@ -518,7 +545,7 @@ void SSD_Core::_setEnhanceDisplay() {
     #endif
 }
 
-void SSD_Core::_setGreyscaleTable() {
+void SSD_Core::_setGreyscaleTable(void) {
 
     // If no custom values are defined...
     if (SSD_DISPLAY_DATA_GRAY_TABLE == NULL) {
@@ -591,7 +618,11 @@ void SSD_Core::_drawLine(
         defined(SSD_1332_REGISTERS_H)
 
         // Get delay for draw op.
-		int dly = _calculateDelay(x1 - x0, y1 - y0, SSD_DISPLAY_DATA_LINE_DELAY);
+		int dly = _calculateDelay(
+            x1 - x0, 
+            y1 - y0, 
+            SSD_DISPLAY_DATA_LINE_DELAY
+        );
 
         // Get color.
 		uint8_t r,g,b;
@@ -675,7 +706,9 @@ void SSD_Core::_drawLine(
 					yield(); 	
 				#endif
 			}
-			if (x0 > xbegin + 1) _drawVerticalLine(y0, xbegin, x0 - xbegin, color);
+			if (x0 > xbegin + 1) {
+                _drawVerticalLine(y0, xbegin, x0 - xbegin, color);
+            }
 		} else {
 			for (; x0<=x1; x0++) {
 				err -= dy;
@@ -694,7 +727,9 @@ void SSD_Core::_drawLine(
 					yield(); 	
 				#endif
 			}
-			if (x0 > xbegin + 1) _drawHorizontalLine(xbegin, y0, x0 - xbegin, color);
+			if (x0 > xbegin + 1) {
+                _drawHorizontalLine(xbegin, y0, x0 - xbegin, color);
+            }
 		}
 	#endif
 }
